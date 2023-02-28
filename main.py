@@ -91,14 +91,11 @@ def test_gymretro(env):
 print("Finished loading in packages...")
 
 # Create new env with gym retro
-env = retro.make("DonkeyKongCountry-Snes", '1Player.CongoJungle.JungleHijinks.Level1')
-# env = retro.make(game='Airstriker-Genesis')
+env = retro.make("DonkeyKongCountry-Snes", '1Player.CongoJungle.JungleHijinks.Level1', use_restricted_actions=retro.Actions.DISCRETE)
 
 test = False
 
 if test:
-    print(env.action_space)
-    exit()
     test_gymretro(env)
 else:
     # Get screen and move information from the environment
@@ -107,10 +104,13 @@ else:
 
     # Build the model and the agent
     model = build_model(height, width, channels, actions)
-    print(model.output.shape)
     agent = build_agent(model, actions)
 
     # Compile model and run training
     agent.compile(Adam(lr=1e-4))
-    #TODO: Fix actions not being subscriptable...
     agent.fit(env, nb_steps=1000, visualize=True, verbose=2)
+
+    # TODO:
+    #   - Understand the nb_steps better (seems to refer to # of frames, we want to set episodes/epochs of mulitple tries)
+    #   - What to do with agent after being trained
+    #   - Figure out how to edit hyperparams
