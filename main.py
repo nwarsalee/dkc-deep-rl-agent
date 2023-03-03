@@ -1,6 +1,7 @@
 # Main python file
 # For testing and getting main stuff setup
 
+import os
 import retro
 import cv2
 import numpy as np
@@ -87,11 +88,17 @@ def test_gymretro(env):
 
     env.close()
 
-
+# Function creates a gym environment using the integration located in
+def create_gym_environment():
+    gameName = "DonkeyKongCountrySNES"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    retro.data.Integrations.add_custom_path(os.path.join(script_dir, "custom_integrations"))
+    assert(gameName in retro.data.list_games(inttype=retro.data.Integrations.ALL))
+    return retro.make(gameName, state='1Player.CongoJungle.JungleHijinks.Level1', inttype=retro.data.Integrations.ALL, use_restricted_actions=retro.Actions.DISCRETE)
 print("Finished loading in packages...")
 
 # Create new env with gym retro
-env = retro.make("DonkeyKongCountry-Snes", '1Player.CongoJungle.JungleHijinks.Level1', use_restricted_actions=retro.Actions.DISCRETE)
+env = create_gym_environment()
 
 test = False
 
