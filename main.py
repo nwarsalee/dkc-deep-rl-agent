@@ -91,11 +91,19 @@ def test_model(env, model_file_path):
     model = PPO.load(model_file_path)
     state = env.reset()
     
+    counter = 0
+
     # Run the model on the environment visually
     while True:
         action, _ = model.predict(state)
-        state, _, _, _ = env.step(action)
+        state, reward, done, info = env.step(action)
+
+        if counter % 30 == 0:
+            print("x: {}, y:{}".format(info[0]['x'], info[0]['y']))
+            print("Letters:", info[0]['letters'])
+
         env.render()
+        counter += 1
 
 
 # Hyperparameters to tune the model
