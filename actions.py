@@ -8,11 +8,12 @@ import retro
 
 class Discretizer(gym.ActionWrapper):
     """
+    General Discretizer that works on all gym environments
     Wrap a gym environment and make it use discrete actions.
     Args:
         combos: ordered list of lists of valid button combinations
+    From: https://github.com/openai/retro/blob/master/retro/examples/discretizer.py#L9
     """
-
     def __init__(self, env, combos):
         super().__init__(env)
         assert isinstance(env.action_space, gym.spaces.MultiBinary)
@@ -31,11 +32,9 @@ class Discretizer(gym.ActionWrapper):
 
 
 class DkcDiscretizer(Discretizer):
-    # TODO: Figure this out?
     """
-    Use Sonic-specific discrete actions
-    based on https://github.com/openai/retro-baselines/blob/master/agents/sonic_util.py
+    Use Donkey Kong-specific discrete actions
+    based on https://strategywiki.org/wiki/Donkey_Kong_Country/Controls
     """
     def __init__(self, env):
-        # ['LEFT'], ['LEFT', 'B'],
-        super().__init__(env=env, combos=[['RIGHT'], ['RIGHT', 'B'], ['DOWN'], ['DOWN', 'Y'], ['Y', 'B'], ['B'], ['Y']])
+        super().__init__(env=env, combos=[['LEFT'], ['LEFT', 'B'], ['RIGHT'], ['RIGHT', 'B'], ['DOWN'], ['DOWN', 'Y'], ['Y', 'B'], ['B'], ['Y']])
