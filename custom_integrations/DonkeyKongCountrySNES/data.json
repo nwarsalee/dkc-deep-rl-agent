@@ -7,6 +7,18 @@
     "score": {
       "address": 8258857,
       "type": "|u1"
+    },
+    "letters": {
+      "address": 8258943,
+      "type": "|u1"
+    },
+    "x": {
+      "address": 8257726,
+      "type": "|u2"
+    },
+    "y": {
+      "address": 8257728,
+      "type": "|u2"
     }
   }
 }
