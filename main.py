@@ -84,15 +84,6 @@ def show_framestack(state):
         plt.imshow(state[0][:,:,i])
     plt.show()
 
-def old_rl_model():
-    # Build the model and the agent
-    # NOTE: OLD way
-    # model = build_model(height, width, channels, actions)
-    # agent = build_agent(model, actions)
-    # # Compile model and run training
-    # agent.compile(Adam(lr=1e-4))
-    # agent.fit(env, nb_steps=1000, visualize=True, verbose=2)
-    pass
 
 # Function runs the model given an environment and path to the PPO model
 def test_model(env, model_file_path):
