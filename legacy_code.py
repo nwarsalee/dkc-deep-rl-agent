@@ -6,7 +6,6 @@ from keras.optimizers import Adam
 from rl.agents import DQNAgent
 from rl.memory import SequentialMemory
 from rl.policy import LinearAnnealedPolicy, EpsGreedyQPolicy
-Stable baselines imports
 
 # Function to build a keras NeuralNetwork model for DeepQLearning
 def build_model(height, width, channels, actions):
