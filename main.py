@@ -2,46 +2,21 @@
 # For testing and getting main stuff setup
 
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 import retro
+from gym.wrappers import GrayScaleObservation
+from actions import DkcDiscretizer
 import cv2
 import numpy as np
-# Tensorflow/Keras Imports
-from keras import Sequential
-from keras.layers import Dense, Flatten, Convolution2D
-from keras.optimizers import Adam
-# Reinforcement learning imports
-from rl.agents import DQNAgent
-from rl.memory import SequentialMemory
-from rl.policy import LinearAnnealedPolicy, EpsGreedyQPolicy
+from matplotlib import pyplot as plt
+# Stable baselines imports
+from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
+from helpers import TrainingCallback
 
-# Function to build a keras NeuralNetwork model for DeepQLearning
-def build_model(height, width, channels, actions):
-    model = Sequential()
-    # Setup convolutional layers
-    model.add(Convolution2D(32, (8,8), strides=(4,4), activation="relu", input_shape=(3, height, width, channels)))
-    model.add(Convolution2D(64, (4,4), strides=(2,2), activation="relu"))
-    model.add(Convolution2D(64, (3,3), activation="relu"))
-    model.add(Flatten())
-
-    # Set up dense layers
-    model.add(Dense(512, activation='relu'))
-    model.add(Dense(256, activation='relu'))
-
-    # Set up output layer
-    model.add(Dense(actions, activation='linear'))
-
-    return model
-
-# Function to build a DeepQ Learning agent based on the keras AI model
-def build_agent(model, actions):
-    policy = LinearAnnealedPolicy(EpsGreedyQPolicy(), attr='eps', value_max=1., value_min=.1, value_test=.2, nb_steps=10000)
-    memory = SequentialMemory(limit=1000, window_length=3)
-    
-    dqn = DQNAgent(model=model, memory=memory, policy=policy,
-                  enable_dueling_network=True, dueling_type='avg', 
-                   nb_actions=actions, nb_steps_warmup=1000)
-
-    return dqn
+print("Finished loading in packages...")
 
 # Function to test the SNES gym-retro environment
 def test_gymretro(env):
@@ -90,33 +65,106 @@ def test_gymretro(env):
 
 # Function creates a gym environment using the integration located in
 def create_gym_environment():
-    gameName = "DonkeyKongCountrySNES"
+    # Add the game to the retro data
+    game_name = "DonkeyKongCountrySNES"
     script_dir = os.path.dirname(os.path.abspath(__file__))
     retro.data.Integrations.add_custom_path(os.path.join(script_dir, "custom_integrations"))
-    assert(gameName in retro.data.list_games(inttype=retro.data.Integrations.ALL))
-    return retro.make(gameName, state='1Player.CongoJungle.JungleHijinks.Level1', inttype=retro.data.Integrations.ALL, use_restricted_actions=retro.Actions.DISCRETE)
-print("Finished loading in packages...")
+    assert(game_name in retro.data.list_games(inttype=retro.data.Integrations.ALL))
+    # Create the gym environment from the custom integration
+    return retro.make(game_name, state='1Player.CongoJungle.JungleHijinks.Level1', inttype=retro.data.Integrations.ALL) # , use_restricted_actions=retro.Actions.DISCRETE
+
+def showimg(state):
+    plt.imshow(state)
+    plt.show()
+
+def show_framestack(state):
+    plt.figure(figsize=(10,8))
+    for i in range(state.shape[3]):
+        plt.subplot(1,4, i+1)
+        plt.imshow(state[0][:,:,i])
+    plt.show()
+
+def old_rl_model():
+    # Build the model and the agent
+    # NOTE: OLD way
+    # model = build_model(height, width, channels, actions)
+    # agent = build_agent(model, actions)
+    # # Compile model and run training
+    # agent.compile(Adam(lr=1e-4))
+    # agent.fit(env, nb_steps=1000, visualize=True, verbose=2)
+    pass
+
+# Function runs the model given an environment and path to the PPO model
+def test_model(env, model_file_path):
+    # Load weights and environment
+    model = PPO.load(model_file_path)
+    state = env.reset()
+    
+    # Run the model on the environment visually
+    while True:
+        action, _ = model.predict(state)
+        state, _, _, _ = env.step(action)
+        env.render()
+
+
+# Hyperparameters to tune the model
+hyper_totaltimesteps = 10000
+hyper_numOfFrameStack = 4
+
+# Folder saving
+LOG_DIR = './logs/' # Where to save the logs
+SAVE_DIR = './train/' # Where to save the model weights training increments
 
 # Create new env with gym retro
 env = create_gym_environment()
 
-test = False
+test = True
 
 if test:
-    test_gymretro(env)
+    env = DkcDiscretizer(env)
+    env = GrayScaleObservation(env, True)
+
+    # Vectorize image
+    env = DummyVecEnv([lambda: env])
+    env = VecFrameStack(env, hyper_numOfFrameStack, channels_order='last')
+
+    test_model(env, "./latest_model_10000.zip")
+    #test_gymretro(env)
 else:
     # Get screen and move information from the environment
     height, width, channels = env.observation_space.shape
     actions = env.action_space.n
 
-    # Build the model and the agent
-    model = build_model(height, width, channels, actions)
-    agent = build_agent(model, actions)
+    # Simply movement controls
+    # TODO: Figure out if this works???
+    env = DkcDiscretizer(env)
+    # env.unwrapped.get_action_meanings()
 
-    # Compile model and run training
-    agent.compile(Adam(lr=1e-4))
-    agent.fit(env, nb_steps=1000, visualize=True, verbose=2)
+    # Preprocess environment before sending to train
+    # TODO:
+    # Turn image into grayscale
+    env = GrayScaleObservation(env, True)
 
+    # Vectorize image
+    env = DummyVecEnv([lambda: env])
+    env = VecFrameStack(env, hyper_numOfFrameStack, channels_order='last')
+
+    env.reset()
+
+    state, reward, done, info = env.step([env.action_space.sample()])
+
+    # TODO: IMPLEMENT LOGGING AND SAVING FOR MODEL
+    
+    training_callback = TrainingCallback(frequency=5000, dir_path=SAVE_DIR)
+    # Instantiate model that uses PPO
+    # TODO: Use custom cnn
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=1e-5, n_steps=512, device="cuda") 
+
+    # TODO: Implement use of episodes
+    model.learn(total_timesteps=10000, callback=training_callback)
+    
+    model.save(f"latest_model_{hyper_totaltimesteps}")
+    
     # TODO:
     #   - Understand the nb_steps better (seems to refer to # of frames, we want to set episodes/epochs of mulitple tries)
     #   - What to do with agent after being trained
