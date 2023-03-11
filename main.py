@@ -10,6 +10,7 @@ from actions import DkcDiscretizer
 import cv2
 import numpy as np
 import time
+import argparse
 from matplotlib import pyplot as plt
 # Stable baselines imports
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
@@ -93,6 +94,24 @@ def time_convert(text, sec):
 
     print("{} - {:02d}:{:02d}:{:02d}".format(text, int(hours), int(mins), int(sec)))
 
+def init_argparse() -> argparse.ArgumentParser:
+    """
+    Define argument parser to allow for command line arguments
+    """
+    parser = argparse.ArgumentParser(
+        description="Train an RL agent to play Donkey Kong Country."
+    )
+
+    parser.add_argument(
+        "-t", "--test", action="store_true", help="Test pre-saved model on new game instance. If not specified, will default to training."
+    )
+
+    parser.add_argument(
+        "-s", "--steps", type=int, help="Number of timesteps to train the model for."
+    )
+
+    return parser
+
 # Function runs the model given an environment and path to the PPO model
 def test_model(env, model_file_path):
     # Load weights and environment
@@ -106,17 +125,23 @@ def test_model(env, model_file_path):
         action, _ = model.predict(state)
         state, reward, done, info = env.step(action)
 
-        if counter % 30 == 0:
+        if counter % 1000 == 0:
             print("x: {}, y:{}".format(info[0]['x'], info[0]['y']))
             print("Letters:", info[0]['letters'])
 
         env.render()
         counter += 1
 
+# Parse incoming arguments
+parser = init_argparse()
+args = parser.parse_args()
 
 # Hyperparameters to tune the model
 hyper_totaltimesteps = 100000
 hyper_numOfFrameStack = 4
+
+if args.steps:
+    hyper_totaltimesteps = args.steps
 
 # Folder saving
 LOG_DIR = './logs/' # Where to save the logs
@@ -125,9 +150,8 @@ SAVE_DIR = './train/' # Where to save the model weights training increments
 # Create new env with gym retro
 env = create_gym_environment()
 
-# TODO: Add command line args
-
-test = True
+# Flag for whether to train or test
+test = args.test
 
 if test:
     env = DkcDiscretizer(env)
@@ -163,7 +187,7 @@ else:
 
     # Instantiate model that uses PPO
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=1e-3, n_steps=512, device="cuda") 
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=1e-5, n_steps=512, device="cuda") 
 
     print("Training with {} timesteps...".format(hyper_totaltimesteps))
 
