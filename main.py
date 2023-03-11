@@ -86,6 +86,22 @@ def show_framestack(state):
         plt.imshow(state[0][:,:,i])
     plt.show()
 
+def preprocess_env(env, hyper):
+    """
+    Function to preprocess game environment before training
+    """
+    # Discretize controls
+    env = DkcDiscretizer(env)
+
+    # Turn image to grayscale
+    env = GrayScaleObservation(env, True)
+
+    # Vectorize image
+    env = DummyVecEnv([lambda: env])
+    env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
+
+    return env
+
 def time_convert(text, sec):
     mins = sec // 60
     sec = sec % 60
@@ -137,11 +153,15 @@ parser = init_argparse()
 args = parser.parse_args()
 
 # Hyperparameters to tune the model
-hyper_totaltimesteps = 100000
-hyper_numOfFrameStack = 4
+hyper = {
+    "timesteps" : 10000,
+    "frame_stacks" : 4,
+    "learn_rate" : 1e-5,
+    "n_steps" : 512
+}
 
 if args.steps:
-    hyper_totaltimesteps = args.steps
+    hyper['timesteps'] = args.steps
 
 # Folder saving
 LOG_DIR = './logs/' # Where to save the logs
@@ -154,58 +174,41 @@ env = create_gym_environment()
 test = args.test
 
 if test:
-    env = DkcDiscretizer(env)
-    env = GrayScaleObservation(env, True)
+    # Preprocess environment
+    env = preprocess_env(env, hyper)
 
-    # Vectorize image
-    env = DummyVecEnv([lambda: env])
-    env = VecFrameStack(env, hyper_numOfFrameStack, channels_order='last')
-
-    test_model(env, f"./latest_model_{hyper_totaltimesteps}.zip")
-    #test_gymretro(env)
+    test_model(env, f"./latest_model_{hyper['timesteps']}.zip")
 else:
     # Get screen and move information from the environment
+    # TODO: What to do with these??
     height, width, channels = env.observation_space.shape
     actions = env.action_space.n
 
-    # Simply movement controls
-    env = DkcDiscretizer(env)
-
-    # Preprocess environment before sending to train
-    # Turn image into grayscale
-    env = GrayScaleObservation(env, True)
-
-    # Vectorize image
-    env = DummyVecEnv([lambda: env])
-    env = VecFrameStack(env, hyper_numOfFrameStack, channels_order='last')
+    # Preprocess environment before training
+    env = preprocess_env(env, hyper)
 
     # Reset game environment with new preprocessing steps
     env.reset()
 
     # Create custom callback for logging progress
-    training_callback = TrainingCallback(frequency=hyper_totaltimesteps/4, dir_path=SAVE_DIR)
+    training_callback = TrainingCallback(frequency=hyper['timesteps']/4, dir_path=SAVE_DIR)
 
     # Instantiate model that uses PPO
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=1e-5, n_steps=512, device="cuda") 
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda") 
 
-    print("Training with {} timesteps...".format(hyper_totaltimesteps))
+    print("Training with {} timesteps...".format(hyper['timesteps']))
 
     # Start timer
     start = time.time()
 
     # TODO: Implement use of episodes
-    model.learn(total_timesteps=hyper_totaltimesteps, callback=training_callback)
+    model.learn(total_timesteps=hyper['timesteps'], callback=training_callback)
 
     # End timer
     end = time.time()
     total_time = end-start
     time_convert('Training Time', total_time)
 
-    
-    model.save(f"latest_model_{hyper_totaltimesteps}")
-    
-    # TODO:
-    #   - Understand the nb_steps better (seems to refer to # of frames, we want to set episodes/epochs of mulitple tries)
-    #   - What to do with agent after being trained
-    #   - Figure out how to edit hyperparams
+    # Save model to load it in later for testing
+    model.save(f"latest_model_{hyper['timesteps']}")
