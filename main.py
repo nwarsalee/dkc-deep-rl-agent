@@ -9,6 +9,7 @@ from gym.wrappers import GrayScaleObservation
 from actions import DkcDiscretizer
 import cv2
 import numpy as np
+import time
 from matplotlib import pyplot as plt
 # Stable baselines imports
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
@@ -84,6 +85,13 @@ def show_framestack(state):
         plt.imshow(state[0][:,:,i])
     plt.show()
 
+def time_convert(text, sec):
+    mins = sec // 60
+    sec = sec % 60
+    hours = mins // 60
+    mins = mins % 60
+
+    print("{} - {:02d}:{:02d}:{:02d}".format(text, int(hours), int(mins), int(sec)))
 
 # Function runs the model given an environment and path to the PPO model
 def test_model(env, model_file_path):
@@ -107,7 +115,7 @@ def test_model(env, model_file_path):
 
 
 # Hyperparameters to tune the model
-hyper_totaltimesteps = 10000
+hyper_totaltimesteps = 100000
 hyper_numOfFrameStack = 4
 
 # Folder saving
@@ -116,6 +124,8 @@ SAVE_DIR = './train/' # Where to save the model weights training increments
 
 # Create new env with gym retro
 env = create_gym_environment()
+
+# TODO: Add command line args
 
 test = True
 
@@ -127,7 +137,7 @@ if test:
     env = DummyVecEnv([lambda: env])
     env = VecFrameStack(env, hyper_numOfFrameStack, channels_order='last')
 
-    test_model(env, "./latest_model_10000.zip")
+    test_model(env, f"./latest_model_{hyper_totaltimesteps}.zip")
     #test_gymretro(env)
 else:
     # Get screen and move information from the environment
@@ -135,12 +145,9 @@ else:
     actions = env.action_space.n
 
     # Simply movement controls
-    # TODO: Figure out if this works???
     env = DkcDiscretizer(env)
-    # env.unwrapped.get_action_meanings()
 
     # Preprocess environment before sending to train
-    # TODO:
     # Turn image into grayscale
     env = GrayScaleObservation(env, True)
 
@@ -148,19 +155,29 @@ else:
     env = DummyVecEnv([lambda: env])
     env = VecFrameStack(env, hyper_numOfFrameStack, channels_order='last')
 
+    # Reset game environment with new preprocessing steps
     env.reset()
 
-    state, reward, done, info = env.step([env.action_space.sample()])
+    # Create custom callback for logging progress
+    training_callback = TrainingCallback(frequency=hyper_totaltimesteps/4, dir_path=SAVE_DIR)
 
-    # TODO: IMPLEMENT LOGGING AND SAVING FOR MODEL
-    
-    training_callback = TrainingCallback(frequency=5000, dir_path=SAVE_DIR)
     # Instantiate model that uses PPO
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=1e-5, n_steps=512, device="cuda") 
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=1e-3, n_steps=512, device="cuda") 
+
+    print("Training with {} timesteps...".format(hyper_totaltimesteps))
+
+    # Start timer
+    start = time.time()
 
     # TODO: Implement use of episodes
-    model.learn(total_timesteps=10000, callback=training_callback)
+    model.learn(total_timesteps=hyper_totaltimesteps, callback=training_callback)
+
+    # End timer
+    end = time.time()
+    total_time = end-start
+    time_convert('Training Time', total_time)
+
     
     model.save(f"latest_model_{hyper_totaltimesteps}")
     
