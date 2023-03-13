@@ -10,7 +10,19 @@
     "variables": {
       "x": {
         "reward": 1.0
+      },
+      "score": {
+        "reward": 2.0
+      },
+      "enemies_jumped": {
+        "reward": 4.0
+      },
+      "lives": {
+        "reward": 0.0
       }
+    },
+    "time" : {
+      "reward": 0
     }
   }
 }

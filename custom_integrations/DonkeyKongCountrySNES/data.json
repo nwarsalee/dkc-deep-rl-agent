@@ -8,6 +8,10 @@
       "address": 8258857,
       "type": "|u1"
     },
+    "in_game": {
+      "address": 8257576,
+      "type": "|u1"
+    },
     "letters": {
       "address": 8258943,
       "type": "|u1"
@@ -19,6 +23,10 @@
     "y": {
       "address": 8257728,
       "type": "|u2"
+    },
+    "enemies_jumped": {
+      "address": 8265239,
+      "type": "|u1"
     }
   }
 }

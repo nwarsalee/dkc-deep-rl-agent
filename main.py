@@ -13,7 +13,7 @@ import time
 import argparse
 from matplotlib import pyplot as plt
 # Stable baselines imports
-from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack, SubprocVecEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 from helpers import TrainingCallback
@@ -98,6 +98,7 @@ def preprocess_env(env, hyper):
 
     # Vectorize image
     env = DummyVecEnv([lambda: env])
+    # env = SubprocVecEnv([lambda: env for i in range(8)])
     env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
 
     return env
@@ -136,14 +137,25 @@ def test_model(env, model_file_path):
     
     counter = 0
 
+    action_counter = 7*[0]
+
     # Run the model on the environment visually
     while True:
         action, _ = model.predict(state)
         state, reward, done, info = env.step(action)
 
-        if counter % 1000 == 0:
+        # Save what action was done
+        print_heatmap = True
+        action_counter[action[0]] += 1
+
+        if reward[0] > 0:
             print("x: {}, y:{}".format(info[0]['x'], info[0]['y']))
-            print("Letters:", info[0]['letters'])
+            print("reward: {}".format(reward[0]))
+            print("action:", action_map[action[0]])
+        
+        if print_heatmap:
+            for i, map in enumerate(action_map):
+                print("{} - {} presses".format(map, action_counter[i]))
 
         env.render()
         counter += 1
@@ -156,7 +168,7 @@ args = parser.parse_args()
 hyper = {
     "timesteps" : 10000,
     "frame_stacks" : 4,
-    "learn_rate" : 1e-5,
+    "learn_rate" : 1e-6,
     "n_steps" : 512
 }
 
@@ -169,6 +181,9 @@ SAVE_DIR = './train/' # Where to save the model weights training increments
 
 # Create new env with gym retro
 env = create_gym_environment()
+
+# Allowable actions
+action_map = [['LEFT'], ['LEFT', 'B'], ['RIGHT'], ['RIGHT', 'B'], ['DOWN', 'Y'], ['B'], ['Y']]
 
 # Flag for whether to train or test
 test = args.test
@@ -202,7 +217,7 @@ else:
     # Start timer
     start = time.time()
 
-    # TODO: Implement use of episodes
+    # Train model
     model.learn(total_timesteps=hyper['timesteps'], callback=training_callback)
 
     # End timer
