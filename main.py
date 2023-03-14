@@ -7,6 +7,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import retro
 from gym.wrappers import GrayScaleObservation
 from actions import DkcDiscretizer
+from observations import ColourModifier
 import cv2
 import numpy as np
 import time
@@ -38,30 +39,50 @@ def test_gymretro(env):
         xpos = 0
         xpos_max = 0
 
+        counter = 0
+
         # Game Render loop
         while not done:
             # Display what is happening
             env.render()
             
             # Specify action/buttons randomly
-            action = env.action_space.sample()
+            # action = env.action_space.sample()
+
+            # Spam right and jump alternating
+            if counter % 2 == 0:
+                action = 3
+            else:
+                action = 2
+
+            print(action)
 
             # Turn image to grayscale
-            state = cv2.resize(state, (pos[0], pos[1]))
-            state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
-            state = np.reshape(state, (pos[0], pos[1]))
+            # state = cv2.resize(state, (pos[0], pos[1]))
+            # state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
+            # state = np.reshape(state, (pos[0], pos[1]))
 
             imgArray = state.flatten()
 
             # Update next frame with current actions
             state, reward, done, info = env.step(action)
             
+            # update max x
+            xpos = info['x']
+            if xpos > xpos_max:
+                xpos_max = xpos
+
+            # Print img of current frame
+            if counter % 450 == 0:
+                showimg(state)
+
             # Update score
             score += reward
 
-            print("Ep#", i, " Action:", action, " | Reward:", reward)
+            # print("Ep#", i, " Action:", action, " | Reward:", reward)
 
             imgArray = []
+            counter +=1
 
     env.close()
 
@@ -124,7 +145,15 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "-e", "--experiment", action="store_true", help="Whether to run experiments in the sandbox. Used for testing new functionality and hacking around."
+    )
+
+    parser.add_argument(
         "-s", "--steps", type=int, help="Number of timesteps to train the model for."
+    )
+
+    parser.add_argument(
+        "-c", "--custom_model", type=str, help="Specify custom model to test. Default model to test will be of form lates_model_<steps>.zip"
     )
 
     return parser
@@ -152,13 +181,36 @@ def test_model(env, model_file_path):
             print("x: {}, y:{}".format(info[0]['x'], info[0]['y']))
             print("reward: {}".format(reward[0]))
             print("action:", action_map[action[0]])
+
+        if reward[0] > 2.0:
+            showimg(state[0,:,:,0])
         
-        if print_heatmap:
-            for i, map in enumerate(action_map):
-                print("{} - {} presses".format(map, action_counter[i]))
+        # if print_heatmap:
+            # for i, map in enumerate(action_map):
+                # print("{} - {} presses".format(map, action_counter[i]))
 
         env.render()
         counter += 1
+
+# Function for testing wrappers on Gym environments
+def test_wrappers(env):
+    # Apply discretizer wrapper
+    env = DkcDiscretizer(env)
+    # Apply colour modifier on env
+    env = ColourModifier(env)
+
+    # Reset and step env to view new observation after wrapping
+    # env.reset()
+
+    # a = env.action_space.sample()
+    # state, reward, done, info = env.step(a)
+
+    # obs_space = env.observation_space
+    # # print("Obs space:", obs_space)
+
+    # showimg(state)
+
+    test_gymretro(env)
 
 # Parse incoming arguments
 parser = init_argparse()
@@ -187,13 +239,23 @@ action_map = [['LEFT'], ['LEFT', 'B'], ['RIGHT'], ['RIGHT', 'B'], ['DOWN', 'Y'],
 
 # Flag for whether to train or test
 test = args.test
+experiment = args.experiment
+
+if experiment:
+    test_wrappers(env)
 
 if test:
     # Preprocess environment
     env = preprocess_env(env, hyper)
 
+    # Choose model to test
+    if args.custom_model:
+        model = f"./{args.custom_model}.zip"
+    else:
+        model = f"./latest_model_{hyper['timesteps']}.zip"
+
     test_model(env, f"./latest_model_{hyper['timesteps']}.zip")
-else:
+elif not experiment:
     # Get screen and move information from the environment
     # TODO: What to do with these??
     height, width, channels = env.observation_space.shape
