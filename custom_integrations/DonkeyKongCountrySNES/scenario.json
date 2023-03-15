@@ -19,6 +19,9 @@
       },
       "lives": {
         "reward": 0.0
+      },
+      "death_music": {
+        "penalty": 1.0
       }
     },
     "time" : {

@@ -181,9 +181,6 @@ def test_model(env, model_file_path):
             print("x: {}, y:{}".format(info[0]['x'], info[0]['y']))
             print("reward: {}".format(reward[0]))
             print("action:", action_map[action[0]])
-
-        if reward[0] > 2.0:
-            showimg(state[0,:,:,0])
         
         # if print_heatmap:
             # for i, map in enumerate(action_map):

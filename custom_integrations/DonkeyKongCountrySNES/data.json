@@ -27,6 +27,10 @@
     "enemies_jumped": {
       "address": 8265239,
       "type": "|u1"
+    },
+    "death_music": {
+      "address": 8258849,
+      "type": "|u1"
     }
   }
 }
