@@ -37,5 +37,5 @@ class DkcDiscretizer(Discretizer):
     based on https://strategywiki.org/wiki/Donkey_Kong_Country/Controls
     """
     def __init__(self, env):
-        # NOTE: RIGHT, Y is running right (same with LEFT, Y)
-        super().__init__(env=env, combos=[['LEFT'], ['LEFT', 'B'], ['RIGHT'], ['RIGHT', 'B'], ['DOWN', 'Y'], ['B'], ['Y']])
+        # NOTE: RIGHT, Y is running right (same with LEFT, Y) ['LEFT', 'B'] ['RIGHT', 'B']
+        super().__init__(env=env, combos=[['LEFT'], ['RIGHT'], ['DOWN', 'Y'], ['B'], ['Y']])
