@@ -53,7 +53,7 @@ def test_gymretro(env):
             if counter % 2 == 0:
                 action = 3
             else:
-                action = 2
+                action = 1
 
             print(action)
 
