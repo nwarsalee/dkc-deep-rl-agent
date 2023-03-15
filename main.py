@@ -251,6 +251,8 @@ if test:
     else:
         model = f"./latest_model_{hyper['timesteps']}.zip"
 
+    print("Testing model named '{}'".format(model))
+
     test_model(env, f"./latest_model_{hyper['timesteps']}.zip")
 elif not experiment:
     # Get screen and move information from the environment
