@@ -19,7 +19,7 @@ class ColourModifier(ObservationWrapper):
         # invert = obs.copy()
         # invert = 255 - invert
 
-        image = cv2.cvtColor(obs, cv2.COLOR_BGR2HSV )
+        image = cv2.cvtColor(obs, cv2.COLOR_BGR2HSV)
 
         return image
         # return obs

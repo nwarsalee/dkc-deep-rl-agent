@@ -9,7 +9,7 @@
   "reward": {
     "variables": {
       "x": {
-        "reward": 1.0
+        "reward": 0.01
       },
       "score": {
         "reward": 2.0
@@ -21,7 +21,7 @@
         "reward": 0.0
       },
       "death_music": {
-        "penalty": 1.0
+        "penalty": 100.0
       }
     },
     "time" : {
