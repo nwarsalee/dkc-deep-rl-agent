@@ -253,7 +253,7 @@ if test:
 
     print("Testing model named '{}'".format(model))
 
-    test_model(env, f"./latest_model_{hyper['timesteps']}.zip")
+    test_model(env, model)
 elif not experiment:
     # Get screen and move information from the environment
     # TODO: What to do with these??
