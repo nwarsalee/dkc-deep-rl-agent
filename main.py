@@ -175,6 +175,17 @@ def clear_past_train_progress(save_dir):
     for f in files:
         os.remove(f)
 
+def save_model(model, path, name):
+    """
+    Function to save model and save its parameters used for training
+    """
+    # Create directories to save model in
+    os.makedirs(path)
+
+    # Save model to load it in later for testing
+    model.save(f"{path}/{name}.zip")
+
+    # Save 
 
 # Function runs the model given an environment and path to the PPO model
 def test_model(env, model_file_path):
@@ -297,7 +308,7 @@ else:
     # Instantiate model that uses PPO
     policy_kwargs = dict(share_features_extractor=False)
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/model_name", learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
 
     print("Training with {} timesteps...".format(hyper['timesteps']))
 
@@ -312,9 +323,8 @@ else:
     total_time = end-start
     time_convert('Training Time', total_time)
 
-    # Create directories to save model in
+    # Path to save model in
     model_path = f"{MODEL_DIR}/{model_name}"
-    os.makedirs(model_path)
 
-    # Save model to load it in later for testing
-    model.save(f"{model_path}/{model_name}.zip")
+    # Save model after completing training
+    save_model(model, model_path, model_name)
