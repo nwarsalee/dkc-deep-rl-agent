@@ -30,10 +30,10 @@ def test_gymretro(env):
         done = False
 
         # Grab resolution of game image
-        inx, iny, inc = env.observation_space.shape
-        pos = np.array([int(inx/8), int(iny/8)])
+        # inx, iny, inc = env.observation_space.shape
+        # pos = np.array([int(inx/8), int(iny/8)])
 
-        print(pos)
+        # print(pos)
 
         # Declare vars for x coord
         xpos = 0
@@ -50,12 +50,12 @@ def test_gymretro(env):
             # action = env.action_space.sample()
 
             # Spam right and jump alternating
-            if counter % 2 == 0:
+            if counter % 5 == 0:
+                # JUMP
                 action = 3
             else:
+                # RIGHT
                 action = 1
-
-            print(action)
 
             # Turn image to grayscale
             # state = cv2.resize(state, (pos[0], pos[1]))
@@ -114,12 +114,15 @@ def preprocess_env(env, hyper):
     # Discretize controls
     env = DkcDiscretizer(env)
 
+    # Apply custom colour modifications to image
+    # env = ColourModifier(env)
+
     # Turn image to grayscale
     env = GrayScaleObservation(env, True)
 
     # Vectorize image
     env = DummyVecEnv([lambda: env])
-    # env = SubprocVecEnv([lambda: env for i in range(8)])
+
     env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
 
     return env
@@ -195,6 +198,8 @@ def test_wrappers(env):
     env = DkcDiscretizer(env)
     # Apply colour modifier on env
     env = ColourModifier(env)
+    # Apply grayscale
+    env = GrayScaleObservation(env)
 
     # Reset and step env to view new observation after wrapping
     # env.reset()
@@ -232,7 +237,7 @@ SAVE_DIR = './train/' # Where to save the model weights training increments
 env = create_gym_environment()
 
 # Allowable actions
-action_map = [['LEFT'], ['LEFT', 'B'], ['RIGHT'], ['RIGHT', 'B'], ['DOWN', 'Y'], ['B'], ['Y']]
+action_map = [['LEFT'], ['RIGHT'], ['DOWN', 'Y'], ['B'], ['Y']]
 
 # Flag for whether to train or test
 test = args.test
@@ -270,8 +275,9 @@ elif not experiment:
     training_callback = TrainingCallback(frequency=hyper['timesteps']/4, dir_path=SAVE_DIR)
 
     # Instantiate model that uses PPO
+    policy_kwargs = dict(share_features_extractor=False)
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda") 
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
 
     print("Training with {} timesteps...".format(hyper['timesteps']))
 
