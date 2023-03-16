@@ -11,6 +11,7 @@ from observations import ColourModifier
 import cv2
 import numpy as np
 import time
+import glob
 import argparse
 from matplotlib import pyplot as plt
 # Stable baselines imports
@@ -165,6 +166,16 @@ def init_argparse() -> argparse.ArgumentParser:
 
     return parser
 
+def clear_past_train_progress(save_dir):
+    """
+    Function to delete all models saved under the train_progress folder
+    """
+    files = glob.glob(f'{save_dir}/*')
+
+    for f in files:
+        os.remove(f)
+
+
 # Function runs the model given an environment and path to the PPO model
 def test_model(env, model_file_path):
     # Load weights and environment
@@ -256,10 +267,10 @@ experiment = args.experiment
 if experiment:
     # Place for experimenting
 
-    test_wrappers(env)
+    # test_wrappers(env)
     
     # Exit out
-    exit(1)
+    exit(0)
 
 
 # TEST MODEL
@@ -274,6 +285,9 @@ if test:
     test_model(env, model_file)
 
 else:
+    # Remove any previous training progress files before new training run
+    clear_past_train_progress(SAVE_DIR)
+
     # Preprocess environment before training
     env = preprocess_env(env, hyper)
 
@@ -298,8 +312,9 @@ else:
     total_time = end-start
     time_convert('Training Time', total_time)
 
-    # Model save path
-    model_path = f"{MODEL_DIR}/{model_name}/{model_name}.zip"
+    # Create directories to save model in
+    model_path = f"{MODEL_DIR}/{model_name}"
+    os.makedirs(model_path)
 
     # Save model to load it in later for testing
-    model.save(model_path)
+    model.save(f"{model_path}/{model_name}.zip")
