@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 import time
 import glob
+import json
 import argparse
 from matplotlib import pyplot as plt
 # Stable baselines imports
@@ -132,13 +133,13 @@ def preprocess_env(env, hyper):
 
     return env
 
-def time_convert(text, sec):
+def time_convert(sec):
     mins = sec // 60
     sec = sec % 60
     hours = mins // 60
     mins = mins % 60
 
-    print("{} - {:02d}:{:02d}:{:02d}".format(text, int(hours), int(mins), int(sec)))
+    return "{:02d}:{:02d}:{:02d}".format(int(hours), int(mins), int(sec))
 
 def init_argparse() -> argparse.ArgumentParser:
     """
@@ -175,17 +176,32 @@ def clear_past_train_progress(save_dir):
     for f in files:
         os.remove(f)
 
-def save_model(model, path, name):
+def save_model(model, path, name, hyper=None, time_elapsed=None):
     """
     Function to save model and save its parameters used for training
     """
     # Create directories to save model in
-    os.makedirs(path)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    else:
+        print("WARNING - Path {} already exists, saving model in current directory...".format(path))
+        path = '.'
 
     # Save model to load it in later for testing
     model.save(f"{path}/{name}.zip")
 
-    # Save 
+    # Read in scenario.json to obtain reward function parameters
+    with open('./custom_integrations/DonkeyKongCountrySNES/scenario.json', 'r') as f:
+        reward_params = json.load(f)
+
+    # Save all relevant info relating to training run
+    config = {
+        "training_time" : time_elapsed,
+        "hyper_params" : hyper,
+        "reward_params" : reward_params
+    }
+    with open(f"{path}/config.json", "w") as outfile:
+        json.dump(config, outfile, indent=4)
 
 # Function runs the model given an environment and path to the PPO model
 def test_model(env, model_file_path):
@@ -308,7 +324,7 @@ else:
     # Instantiate model that uses PPO
     policy_kwargs = dict(share_features_extractor=False)
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/model_name", learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/{model_name}", learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
 
     print("Training with {} timesteps...".format(hyper['timesteps']))
 
@@ -321,10 +337,11 @@ else:
     # End timer
     end = time.time()
     total_time = end-start
-    time_convert('Training Time', total_time)
+    total_time = time_convert(total_time)
+    print("Training time - {}".format(total_time))
 
     # Path to save model in
     model_path = f"{MODEL_DIR}/{model_name}"
 
     # Save model after completing training
-    save_model(model, model_path, model_name)
+    save_model(model, model_path, model_name, hyper, total_time)
