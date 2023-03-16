@@ -123,7 +123,11 @@ def preprocess_env(env, hyper):
     # Vectorize image
     env = DummyVecEnv([lambda: env])
 
+    # Stack frames of environment
     env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
+
+    # Reset env to reflect new preprocessing
+    env.reset()
 
     return env
 
@@ -144,6 +148,10 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "-n", "--name", type=str, required=True, help="Name to store/load model."
+    )
+
+    parser.add_argument(
         "-t", "--test", action="store_true", help="Test pre-saved model on new game instance. If not specified, will default to training."
     )
 
@@ -152,11 +160,7 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-s", "--steps", type=int, help="Number of timesteps to train the model for."
-    )
-
-    parser.add_argument(
-        "-c", "--custom_model", type=str, help="Specify custom model to test. Default model to test will be of form lates_model_<steps>.zip"
+        "-s", "--steps", type=int, help="Number of timesteps to train the model for. Default is set to 10 000 timesteps."
     )
 
     return parser
@@ -226,40 +230,50 @@ hyper = {
     "n_steps" : 512
 }
 
+# Set specified number of timesteps based on args
 if args.steps:
     hyper['timesteps'] = args.steps
 
 # Folder saving
-LOG_DIR = './logs/' # Where to save the logs
-SAVE_DIR = './train/' # Where to save the model weights training increments
+LOG_DIR = './logs/' # Where to save the logs that will be used by tensorboard
+SAVE_DIR = './train_progress/' # Where to save model progress during training (deletes after every new run)
+MODEL_DIR = './models/' # Where to save final models after training
 
 # Create new env with gym retro
 env = create_gym_environment()
 
 # Allowable actions
+# TODO: Move this somewhere else
 action_map = [['LEFT'], ['RIGHT'], ['DOWN', 'Y'], ['B'], ['Y']]
+
+# Model name to test/train via args
+model_name = args.name
 
 # Flag for whether to train or test
 test = args.test
 experiment = args.experiment
 
 if experiment:
-    test_wrappers(env)
+    # Place for experimenting
 
+    test_wrappers(env)
+    
+    # Exit out
+    exit(1)
+
+
+# TEST MODEL
 if test:
     # Preprocess environment
     env = preprocess_env(env, hyper)
 
-    # Choose model to test
-    if args.custom_model:
-        model = f"./{args.custom_model}.zip"
-    else:
-        model = f"./latest_model_{hyper['timesteps']}.zip"
+    model_file = f"{model_name}.zip"
 
-    print("Testing model named '{}'".format(model))
+    print("Testing model named '{}'".format(model_name))
 
-    test_model(env, model)
-elif not experiment:
+    test_model(env, model_file)
+
+else:
     # Get screen and move information from the environment
     # TODO: What to do with these??
     height, width, channels = env.observation_space.shape
@@ -267,9 +281,6 @@ elif not experiment:
 
     # Preprocess environment before training
     env = preprocess_env(env, hyper)
-
-    # Reset game environment with new preprocessing steps
-    env.reset()
 
     # Create custom callback for logging progress
     training_callback = TrainingCallback(frequency=hyper['timesteps']/4, dir_path=SAVE_DIR)
@@ -292,5 +303,8 @@ elif not experiment:
     total_time = end-start
     time_convert('Training Time', total_time)
 
+    # Model save path
+    model_path = f"{MODEL_DIR}/{model_name}/{model_name}.zip"
+
     # Save model to load it in later for testing
-    model.save(f"latest_model_{hyper['timesteps']}")
+    model.save(model_path)
