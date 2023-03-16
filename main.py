@@ -11,6 +11,8 @@ from observations import ColourModifier
 import cv2
 import numpy as np
 import time
+import glob
+import json
 import argparse
 from matplotlib import pyplot as plt
 # Stable baselines imports
@@ -123,17 +125,21 @@ def preprocess_env(env, hyper):
     # Vectorize image
     env = DummyVecEnv([lambda: env])
 
+    # Stack frames of environment
     env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
+
+    # Reset env to reflect new preprocessing
+    env.reset()
 
     return env
 
-def time_convert(text, sec):
+def time_convert(sec):
     mins = sec // 60
     sec = sec % 60
     hours = mins // 60
     mins = mins % 60
 
-    print("{} - {:02d}:{:02d}:{:02d}".format(text, int(hours), int(mins), int(sec)))
+    return "{:02d}:{:02d}:{:02d}".format(int(hours), int(mins), int(sec))
 
 def init_argparse() -> argparse.ArgumentParser:
     """
@@ -141,6 +147,10 @@ def init_argparse() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         description="Train an RL agent to play Donkey Kong Country."
+    )
+
+    parser.add_argument(
+        "-n", "--name", type=str, required=True, help="Name to store/load model."
     )
 
     parser.add_argument(
@@ -152,14 +162,46 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-s", "--steps", type=int, help="Number of timesteps to train the model for."
-    )
-
-    parser.add_argument(
-        "-c", "--custom_model", type=str, help="Specify custom model to test. Default model to test will be of form lates_model_<steps>.zip"
+        "-s", "--steps", type=int, help="Number of timesteps to train the model for. Default is set to 10 000 timesteps."
     )
 
     return parser
+
+def clear_past_train_progress(save_dir):
+    """
+    Function to delete all models saved under the train_progress folder
+    """
+    files = glob.glob(f'{save_dir}/*')
+
+    for f in files:
+        os.remove(f)
+
+def save_model(model, path, name, hyper=None, time_elapsed=None):
+    """
+    Function to save model and save its parameters used for training
+    """
+    # Create directories to save model in
+    if not os.path.exists(path):
+        os.makedirs(path)
+    else:
+        print("WARNING - Path {} already exists, saving model in current directory...".format(path))
+        path = '.'
+
+    # Save model to load it in later for testing
+    model.save(f"{path}/{name}.zip")
+
+    # Read in scenario.json to obtain reward function parameters
+    with open('./custom_integrations/DonkeyKongCountrySNES/scenario.json', 'r') as f:
+        reward_params = json.load(f)
+
+    # Save all relevant info relating to training run
+    config = {
+        "training_time" : time_elapsed,
+        "hyper_params" : hyper,
+        "reward_params" : reward_params
+    }
+    with open(f"{path}/config.json", "w") as outfile:
+        json.dump(config, outfile, indent=4)
 
 # Function runs the model given an environment and path to the PPO model
 def test_model(env, model_file_path):
@@ -226,50 +268,55 @@ hyper = {
     "n_steps" : 512
 }
 
+# Set specified number of timesteps based on args
 if args.steps:
     hyper['timesteps'] = args.steps
 
 # Folder saving
-LOG_DIR = './logs/' # Where to save the logs
-SAVE_DIR = './train/' # Where to save the model weights training increments
+LOG_DIR = './logs/' # Where to save the logs that will be used by tensorboard
+SAVE_DIR = './train_progress/' # Where to save model progress during training (deletes after every new run)
+MODEL_DIR = './models/' # Where to save final models after training
 
 # Create new env with gym retro
 env = create_gym_environment()
 
 # Allowable actions
+# TODO: Move this somewhere else
 action_map = [['LEFT'], ['RIGHT'], ['DOWN', 'Y'], ['B'], ['Y']]
+
+# Model name to test/train via args
+model_name = args.name
 
 # Flag for whether to train or test
 test = args.test
 experiment = args.experiment
 
 if experiment:
-    test_wrappers(env)
+    # Place for experimenting
 
+    # test_wrappers(env)
+    
+    # Exit out
+    exit(0)
+
+
+# TEST MODEL
 if test:
     # Preprocess environment
     env = preprocess_env(env, hyper)
 
-    # Choose model to test
-    if args.custom_model:
-        model = f"./{args.custom_model}.zip"
-    else:
-        model = f"./latest_model_{hyper['timesteps']}.zip"
+    model_file = f"{model_name}.zip"
 
-    print("Testing model named '{}'".format(model))
+    print("Testing model named '{}'".format(model_name))
 
-    test_model(env, model)
-elif not experiment:
-    # Get screen and move information from the environment
-    # TODO: What to do with these??
-    height, width, channels = env.observation_space.shape
-    actions = env.action_space.n
+    test_model(env, model_file)
+
+else:
+    # Remove any previous training progress files before new training run
+    clear_past_train_progress(SAVE_DIR)
 
     # Preprocess environment before training
     env = preprocess_env(env, hyper)
-
-    # Reset game environment with new preprocessing steps
-    env.reset()
 
     # Create custom callback for logging progress
     training_callback = TrainingCallback(frequency=hyper['timesteps']/4, dir_path=SAVE_DIR)
@@ -277,7 +324,7 @@ elif not experiment:
     # Instantiate model that uses PPO
     policy_kwargs = dict(share_features_extractor=False)
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=LOG_DIR, learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/{model_name}", learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
 
     print("Training with {} timesteps...".format(hyper['timesteps']))
 
@@ -290,7 +337,11 @@ elif not experiment:
     # End timer
     end = time.time()
     total_time = end-start
-    time_convert('Training Time', total_time)
+    total_time = time_convert(total_time)
+    print("Training time - {}".format(total_time))
 
-    # Save model to load it in later for testing
-    model.save(f"latest_model_{hyper['timesteps']}")
+    # Path to save model in
+    model_path = f"{MODEL_DIR}/{model_name}"
+
+    # Save model after completing training
+    save_model(model, model_path, model_name, hyper, total_time)
