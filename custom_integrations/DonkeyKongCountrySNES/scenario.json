@@ -22,6 +22,9 @@
       },
       "death_music": {
         "penalty": 100.0
+      },
+      "mounted_animal": {
+        "reward": 1.0
       }
     },
     "time" : {

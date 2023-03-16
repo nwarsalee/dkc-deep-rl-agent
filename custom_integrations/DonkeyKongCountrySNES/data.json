@@ -31,6 +31,18 @@
     "death_music": {
       "address": 8258849,
       "type": "|u1"
-    }
+    },
+    "milliseconds": {
+      "address": 8257606,
+      "type": "|u2"
+    },
+    "minutes": {
+      "address": 8257608,
+      "type": "|u2"
+    },
+    "mounted_animal": {
+      "address": 8258835,
+      "type": ">d4"
+    } 
   }
 }
