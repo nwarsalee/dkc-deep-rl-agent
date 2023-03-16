@@ -1,0 +1,5 @@
+.vscode/
+*.zip
+__pycache__/
+logs/
+train/
