@@ -274,11 +274,6 @@ if test:
     test_model(env, model_file)
 
 else:
-    # Get screen and move information from the environment
-    # TODO: What to do with these??
-    height, width, channels = env.observation_space.shape
-    actions = env.action_space.n
-
     # Preprocess environment before training
     env = preprocess_env(env, hyper)
 
