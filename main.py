@@ -4,89 +4,24 @@
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
+# Local imports
+from dkc_discretizer import DkcDiscretizer
+from colour_modifier_observation import ColourModifierObservation
+from helpers import TrainingCallback
+from file_operations import clear_past_train_progress, save_model
+from testing import test_gymretro, test_model, test_wrappers
+
 import retro
 from gym.wrappers import GrayScaleObservation
-from actions import DkcDiscretizer
-from observations import ColourModifier
-import cv2
 import numpy as np
 import time
-import glob
-import json
 import argparse
-from matplotlib import pyplot as plt
+
 # Stable baselines imports
-from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack, SubprocVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
-from helpers import TrainingCallback
 
 print("Finished loading in packages...")
-
-# Function to test the SNES gym-retro environment
-def test_gymretro(env):
-    # Iterate over 5 episodes
-    for i in range(5):
-        state = env.reset()
-        score = 0
-        done = False
-
-        # Grab resolution of game image
-        # inx, iny, inc = env.observation_space.shape
-        # pos = np.array([int(inx/8), int(iny/8)])
-
-        # print(pos)
-
-        # Declare vars for x coord
-        xpos = 0
-        xpos_max = 0
-
-        counter = 0
-
-        # Game Render loop
-        while not done:
-            # Display what is happening
-            env.render()
-            
-            # Specify action/buttons randomly
-            # action = env.action_space.sample()
-
-            # Spam right and jump alternating
-            if counter % 5 == 0:
-                # JUMP
-                action = 3
-            else:
-                # RIGHT
-                action = 1
-
-            # Turn image to grayscale
-            # state = cv2.resize(state, (pos[0], pos[1]))
-            # state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
-            # state = np.reshape(state, (pos[0], pos[1]))
-
-            imgArray = state.flatten()
-
-            # Update next frame with current actions
-            state, reward, done, info = env.step(action)
-            
-            # update max x
-            xpos = info['x']
-            if xpos > xpos_max:
-                xpos_max = xpos
-
-            # Print img of current frame
-            if counter % 450 == 0:
-                showimg(state)
-
-            # Update score
-            score += reward
-
-            # print("Ep#", i, " Action:", action, " | Reward:", reward)
-
-            imgArray = []
-            counter +=1
-
-    env.close()
 
 # Function creates a gym environment using the integration located in
 def create_gym_environment():
@@ -97,17 +32,6 @@ def create_gym_environment():
     assert(game_name in retro.data.list_games(inttype=retro.data.Integrations.ALL))
     # Create the gym environment from the custom integration
     return retro.make(game_name, state='1Player.CongoJungle.JungleHijinks.Level1', inttype=retro.data.Integrations.ALL) # , use_restricted_actions=retro.Actions.DISCRETE
-
-def showimg(state):
-    plt.imshow(state)
-    plt.show()
-
-def show_framestack(state):
-    plt.figure(figsize=(10,8))
-    for i in range(state.shape[3]):
-        plt.subplot(1,4, i+1)
-        plt.imshow(state[0][:,:,i])
-    plt.show()
 
 def preprocess_env(env, hyper):
     """
@@ -167,95 +91,6 @@ def init_argparse() -> argparse.ArgumentParser:
 
     return parser
 
-def clear_past_train_progress(save_dir):
-    """
-    Function to delete all models saved under the train_progress folder
-    """
-    files = glob.glob(f'{save_dir}/*')
-
-    for f in files:
-        os.remove(f)
-
-def save_model(model, path, name, hyper=None, time_elapsed=None):
-    """
-    Function to save model and save its parameters used for training
-    """
-    # Create directories to save model in
-    if not os.path.exists(path):
-        os.makedirs(path)
-    else:
-        print("WARNING - Path {} already exists, saving model in current directory...".format(path))
-        path = '.'
-
-    # Save model to load it in later for testing
-    model.save(f"{path}/{name}.zip")
-
-    # Read in scenario.json to obtain reward function parameters
-    with open('./custom_integrations/DonkeyKongCountrySNES/scenario.json', 'r') as f:
-        reward_params = json.load(f)
-
-    # Save all relevant info relating to training run
-    config = {
-        "training_time" : time_elapsed,
-        "hyper_params" : hyper,
-        "reward_params" : reward_params
-    }
-    with open(f"{path}/config.json", "w") as outfile:
-        json.dump(config, outfile, indent=4)
-
-# Function runs the model given an environment and path to the PPO model
-def test_model(env, model_file_path):
-    # Load weights and environment
-    model = PPO.load(model_file_path)
-    state = env.reset()
-    
-    counter = 0
-
-    action_counter = 7*[0]
-
-    # Run the model on the environment visually
-    while True:
-        action, _ = model.predict(state)
-        state, reward, done, info = env.step(action)
-
-        # Save what action was done
-        print_heatmap = True
-        action_counter[action[0]] += 1
-
-        if reward[0] > 0:
-            print("x: {}, y:{}".format(info[0]['x'], info[0]['y']))
-            print("reward: {}".format(reward[0]))
-            print("action:", action_map[action[0]])
-        
-        # if print_heatmap:
-            # for i, map in enumerate(action_map):
-                # print("{} - {} presses".format(map, action_counter[i]))
-
-        env.render()
-        counter += 1
-
-# Function for testing wrappers on Gym environments
-def test_wrappers(env):
-    # Apply discretizer wrapper
-    env = DkcDiscretizer(env)
-    # Apply colour modifier on env
-    env = ColourModifier(env)
-    # Apply grayscale
-    env = GrayScaleObservation(env)
-
-    # Reset and step env to view new observation after wrapping
-    # env.reset()
-
-    # a = env.action_space.sample()
-    # state, reward, done, info = env.step(a)
-
-    # obs_space = env.observation_space
-    # # print("Obs space:", obs_space)
-
-    # showimg(state)
-
-    test_gymretro(env)
-
 # Parse incoming arguments
 parser = init_argparse()
 args = parser.parse_args()
@@ -280,12 +115,10 @@ MODEL_DIR = './models/' # Where to save final models after training
 # Create new env with gym retro
 env = create_gym_environment()
 
-# Allowable actions
-# TODO: Move this somewhere else
-action_map = [['LEFT'], ['RIGHT'], ['DOWN', 'Y'], ['B'], ['Y']]
-
 # Model name to test/train via args
 model_name = args.name
+# Path to save/load model in
+model_path = f"{MODEL_DIR}/{model_name}"
 
 # Flag for whether to train or test
 test = args.test
@@ -294,7 +127,7 @@ experiment = args.experiment
 if experiment:
     # Place for experimenting
 
-    # test_wrappers(env)
+    test_wrappers(env)
     
     # Exit out
     exit(0)
@@ -305,7 +138,7 @@ if test:
     # Preprocess environment
     env = preprocess_env(env, hyper)
 
-    model_file = f"{model_name}.zip"
+    model_file = f"{model_path}/{model_name}.zip"
 
     print("Testing model named '{}'".format(model_name))
 
@@ -339,9 +172,6 @@ else:
     total_time = end-start
     total_time = time_convert(total_time)
     print("Training time - {}".format(total_time))
-
-    # Path to save model in
-    model_path = f"{MODEL_DIR}/{model_name}"
 
     # Save model after completing training
     save_model(model, model_path, model_name, hyper, total_time)

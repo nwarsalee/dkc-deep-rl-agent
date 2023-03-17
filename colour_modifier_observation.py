@@ -5,7 +5,7 @@ from gym.spaces import Box
 import numpy as np
 import cv2
 
-class ColourModifier(ObservationWrapper):
+class ColourModifierObservation(ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
         # self.observation_space = Box(shape=(2,), low=-np.inf, high=np.inf)

@@ -4,7 +4,6 @@ Define discrete action spaces for Gym Retro environments with a limited set of b
 
 import gym
 import numpy as np
-import retro
 
 class Discretizer(gym.ActionWrapper):
     """
