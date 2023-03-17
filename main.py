@@ -115,9 +115,10 @@ MODEL_DIR = './models/' # Where to save final models after training
 # Create new env with gym retro
 env = create_gym_environment()
 
-
 # Model name to test/train via args
 model_name = args.name
+# Path to save/load model in
+model_path = f"{MODEL_DIR}/{model_name}"
 
 # Flag for whether to train or test
 test = args.test
@@ -126,7 +127,7 @@ experiment = args.experiment
 if experiment:
     # Place for experimenting
 
-    # test_wrappers(env)
+    test_wrappers(env)
     
     # Exit out
     exit(0)
@@ -137,7 +138,7 @@ if test:
     # Preprocess environment
     env = preprocess_env(env, hyper)
 
-    model_file = f"{model_name}.zip"
+    model_file = f"{model_path}/{model_name}.zip"
 
     print("Testing model named '{}'".format(model_name))
 
@@ -171,9 +172,6 @@ else:
     total_time = end-start
     total_time = time_convert(total_time)
     print("Training time - {}".format(total_time))
-
-    # Path to save model in
-    model_path = f"{MODEL_DIR}/{model_name}"
 
     # Save model after completing training
     save_model(model, model_path, model_name, hyper, total_time)
