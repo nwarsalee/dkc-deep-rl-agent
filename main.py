@@ -37,24 +37,29 @@ def create_gym_environment(state='1Player.CongoJungle.JungleHijinks.Level1', rec
     else:
         return retro.make(game_name, state=state, inttype=retro.data.Integrations.ALL)
 
-def preprocess_env(env, hyper):
+def preprocess_env(env, hyper, preprocessing):
     """
     Function to preprocess game environment before training
     """
     # Discretize controls
-    env = DkcDiscretizer(env)
+    if preprocessing['discretize_actions']:
+        env = DkcDiscretizer(env)
 
     # Apply custom colour modifications to image
-    env = ColourModifierObservation(env)
+    if preprocessing['colour_modifier']:
+        env = ColourModifierObservation(env)
 
     # Turn image to grayscale
-    env = GrayScaleObservation(env, True)
+    if preprocessing['grayscale']:
+        env = GrayScaleObservation(env, True)
 
     # Vectorize image
-    env = DummyVecEnv([lambda: env])
+    if preprocessing['vectorize']:
+        env = DummyVecEnv([lambda: env])
 
     # Stack frames of environment
-    env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
+    if preprocessing['frame_stack']:
+        env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
 
     # Reset env to reflect new preprocessing
     # env.reset()
@@ -111,6 +116,15 @@ hyper = {
     "n_steps" : 512
 }
 
+# Preprocessing steps to use when training the model
+preprocessing = {
+    "discretize_actions" : True,
+    "colour_modifier" : True,
+    "grayscale" : True,
+    "vectorize" : True,
+    "frame_stack" : True
+}
+
 # Set specified number of timesteps based on args
 if args.steps:
     hyper['timesteps'] = args.steps
@@ -141,7 +155,7 @@ if experiment:
     # Place for experimenting
 
     # test_wrappers(env)
-    env = preprocess_env(env, hyper)
+    env = preprocess_env(env, hyper, preprocessing)
     # env = DkcDiscretizer(env)
     test_gymretro(env)
     
@@ -152,7 +166,7 @@ if experiment:
 # TEST MODEL
 if test:
     # Preprocess environment
-    env = preprocess_env(env, hyper)
+    env = preprocess_env(env, hyper, preprocessing)
 
     model_file = f"{model_path}/{model_name}.zip"
 
@@ -165,7 +179,7 @@ else:
     clear_past_train_progress(SAVE_DIR)
 
     # Preprocess environment before training
-    env = preprocess_env(env, hyper)
+    env = preprocess_env(env, hyper, preprocessing)
 
     # Create custom callback for logging progress
     training_callback = TrainingCallback(frequency=hyper['timesteps']/4, dir_path=SAVE_DIR)
@@ -190,4 +204,4 @@ else:
     print("Training time - {}".format(total_time))
 
     # Save model after completing training
-    save_model(model, model_path, model_name, hyper, total_time)
+    save_model(model, model_path, model_name, hyper, total_time, preprocessing)

@@ -13,7 +13,7 @@ def clear_past_train_progress(save_dir):
     for f in files:
         os.remove(f)
 
-def save_model(model, path, name, hyper=None, time_elapsed=None):
+def save_model(model, path, name, hyper=None, time_elapsed=None, preprocessing=None):
     """
     Function to save model and save its parameters used for training
     """
@@ -35,7 +35,8 @@ def save_model(model, path, name, hyper=None, time_elapsed=None):
     config = {
         "training_time" : time_elapsed,
         "hyper_params" : hyper,
-        "reward_params" : reward_params
+        "reward_params" : reward_params,
+        "preprocessing" : preprocessing
     }
     with open(f"{path}/config.json", "w") as outfile:
         json.dump(config, outfile, indent=4)
