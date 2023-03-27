@@ -43,6 +43,14 @@
     "mounted_animal": {
       "address": 8258835,
       "type": ">d4"
-    } 
+    },
+    "velocity" : {
+      "address": 8263964,
+      "type": "|i1"
+    },
+    "throw_barrel" : {
+      "address": 8263695,
+      "type": "|u1"
+    }
   }
 }
