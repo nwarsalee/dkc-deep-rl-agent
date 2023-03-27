@@ -24,14 +24,18 @@ from stable_baselines3 import PPO
 print("Finished loading in packages...")
 
 # Function creates a gym environment using the integration located in
-def create_gym_environment():
+def create_gym_environment(state='1Player.CongoJungle.JungleHijinks.Level1', record=False, record_path=""):
     # Add the game to the retro data
     game_name = "DonkeyKongCountrySNES"
     script_dir = os.path.dirname(os.path.abspath(__file__))
     retro.data.Integrations.add_custom_path(os.path.join(script_dir, "custom_integrations"))
     assert(game_name in retro.data.list_games(inttype=retro.data.Integrations.ALL))
     # Create the gym environment from the custom integration
-    return retro.make(game_name, state='1Player.CongoJungle.JungleHijinks.Level1', inttype=retro.data.Integrations.ALL) # , use_restricted_actions=retro.Actions.DISCRETE
+    if record:
+        os.makedirs(record_path, exist_ok=True)
+        return retro.make(game_name, state=state, inttype=retro.data.Integrations.ALL, record=record_path)
+    else:
+        return retro.make(game_name, state=state, inttype=retro.data.Integrations.ALL)
 
 def preprocess_env(env, hyper):
     """
@@ -41,7 +45,7 @@ def preprocess_env(env, hyper):
     env = DkcDiscretizer(env)
 
     # Apply custom colour modifications to image
-    # env = ColourModifier(env)
+    env = ColourModifierObservation(env)
 
     # Turn image to grayscale
     env = GrayScaleObservation(env, True)
@@ -53,7 +57,7 @@ def preprocess_env(env, hyper):
     env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
 
     # Reset env to reflect new preprocessing
-    env.reset()
+    # env.reset()
 
     return env
 
@@ -89,6 +93,10 @@ def init_argparse() -> argparse.ArgumentParser:
         "-s", "--steps", type=int, help="Number of timesteps to train the model for. Default is set to 10 000 timesteps."
     )
 
+    parser.add_argument(
+        "-r", "--record", action="store_false", help="Whether to record the experiment to a .bk2 file"
+    )
+
     return parser
 
 # Parse incoming arguments
@@ -111,9 +119,7 @@ if args.steps:
 LOG_DIR = './logs/' # Where to save the logs that will be used by tensorboard
 SAVE_DIR = './train_progress/' # Where to save model progress during training (deletes after every new run)
 MODEL_DIR = './models/' # Where to save final models after training
-
-# Create new env with gym retro
-env = create_gym_environment()
+RECORDING_DIR = "./recordings/" # Where to save the recordings 
 
 # Model name to test/train via args
 model_name = args.name
@@ -124,10 +130,20 @@ model_path = f"{MODEL_DIR}/{model_name}"
 test = args.test
 experiment = args.experiment
 
+# Flag for whether to record the training
+record = args.record
+record_path = f"{RECORDING_DIR}/{model_name}"
+
+# Create new env with gym retro
+env = create_gym_environment(record=record, record_path=record_path)
+
 if experiment:
     # Place for experimenting
 
-    test_wrappers(env)
+    # test_wrappers(env)
+    env = preprocess_env(env, hyper)
+    # env = DkcDiscretizer(env)
+    test_gymretro(env)
     
     # Exit out
     exit(0)
@@ -165,7 +181,7 @@ else:
     start = time.time()
 
     # Train model
-    model.learn(total_timesteps=hyper['timesteps'], callback=training_callback)
+    model.learn(total_timesteps=hyper['timesteps'], callback=training_callback, progress_bar=True)
 
     # End timer
     end = time.time()
