@@ -3,6 +3,7 @@
 
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+os.environ["OMP_NUM_THREADS"]="4" # For kmeans clustering
 
 # Local imports
 from dkc_discretizer import DkcDiscretizer
@@ -154,10 +155,10 @@ env = create_gym_environment(record=record, record_path=record_path)
 if experiment:
     # Place for experimenting
 
-    # test_wrappers(env)
-    env = preprocess_env(env, hyper, preprocessing)
+    test_wrappers(env)
+    # env = preprocess_env(env, hyper, preprocessing)
     # env = DkcDiscretizer(env)
-    test_gymretro(env)
+    # test_gymretro(env)
     
     # Exit out
     exit(0)

@@ -37,20 +37,21 @@ def test_gymretro(env, showplot=False):
             env.render()
             
             # Specify action/buttons randomly
-            action = env.action_space.sample()
+            # action = env.action_space.sample()
 
-            print(action)
+            # print(action)
 
             # Spam right and jump alternating
             if counter % 5 == 0:
                 # HIGH JUMP
-                action = [3,3,3,3]
+                # action = [3,3,3,3]
+                action = 3
             else:
                 # RIGHT
-                # action = 1
+                action = 1
 
                 # JUMP
-                action = [1,1,1,1]
+                # action = [1,1,1,1]
 
             # Turn image to grayscale
             # state = cv2.resize(state, (pos[0], pos[1]))
@@ -62,7 +63,7 @@ def test_gymretro(env, showplot=False):
             # Update next frame with current actions
             state, reward, done, info = env.step(action)
 
-            print("info:", info)
+            # print("info:", info)
             
             # update max x
             # xpos = info['x']
@@ -142,4 +143,4 @@ def test_wrappers(env):
 
     # showimg(state)
 
-    test_gymretro(env)
+    test_gymretro(env, True)
