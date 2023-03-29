@@ -8,6 +8,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 from dkc_discretizer import DkcDiscretizer
 from colour_modifier_observation import ColourModifierObservation
 from train_progress import TrainingCallback
+from reward_scale import RewardScaler
 from file_operations import clear_past_train_progress, save_model
 from testing import test_gymretro, test_model, test_wrappers
 
@@ -45,6 +46,10 @@ def preprocess_env(env, hyper, preprocessing):
     # Discretize controls
     if preprocessing['discretize_actions']:
         env = DkcDiscretizer(env)
+
+    # Add reward scaling to environment
+    if preprocessing['reward_scale']:
+        env = RewardScaler(env)
 
     # Apply custom colour modifications to image
     if preprocessing['colour_modifier']:
@@ -140,6 +145,7 @@ hyper = {
 # Preprocessing steps to use when training the model
 preprocessing = {
     "discretize_actions" : True,
+    "reward_scale": False,
     "colour_modifier" : True,
     "grayscale" : True,
     "vectorize" : True,
