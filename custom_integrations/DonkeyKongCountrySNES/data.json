@@ -51,6 +51,10 @@
     "throw_barrel" : {
       "address": 8263695,
       "type": "|u1"
+    },
+    "active_kong" : {
+      "address": 8258927,
+      "type": "|u2"
     }
   }
 }

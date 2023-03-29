@@ -13,7 +13,7 @@
         "reward": 0.05
       },
       "score": {
-        "reward": 2.0
+        "reward": 0.0
       },
       "enemies_jumped": {
         "reward": 6.0
@@ -23,7 +23,7 @@
       },
       "death_music": {
         "measurement": "absolute",
-        "penalty": 100.0
+        "penalty": 150.0
       },
       "velocity": {
         "measurement": "absolute",
@@ -34,12 +34,16 @@
       "throw_barrel": {
         "op": "equal",
         "reference": 2,
-        "reward": 30
+        "reward": 40
       },
       "mounted_animal": {
         "op": "equal",
         "reference": 9,
         "reward": 100
+      },
+      "active_kong": {
+        "reward": -100,
+        "penalty": 100
       }
     },
     "time" : {
