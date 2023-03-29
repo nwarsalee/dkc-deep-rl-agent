@@ -7,7 +7,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 # Local imports
 from dkc_discretizer import DkcDiscretizer
 from colour_modifier_observation import ColourModifierObservation
-from helpers import TrainingCallback
+from train_progress import TrainingCallback
 from file_operations import clear_past_train_progress, save_model
 from testing import test_gymretro, test_model, test_wrappers
 
