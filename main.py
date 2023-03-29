@@ -3,7 +3,6 @@
 
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-os.environ["OMP_NUM_THREADS"]="4" # For kmeans clustering
 
 # Local imports
 from dkc_discretizer import DkcDiscretizer
@@ -17,6 +16,7 @@ from gym.wrappers import GrayScaleObservation
 import numpy as np
 import time
 import argparse
+from typing import Callable
 
 # Stable baselines imports
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
@@ -62,10 +62,26 @@ def preprocess_env(env, hyper, preprocessing):
     if preprocessing['frame_stack']:
         env = VecFrameStack(env, hyper['frame_stacks'], channels_order='last')
 
-    # Reset env to reflect new preprocessing
-    # env.reset()
-
     return env
+
+def linear_schedule(initial_value: float) -> Callable[[float], float]:
+    """
+    Linear learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        return progress_remaining * initial_value
+
+    return func
 
 def time_convert(sec):
     mins = sec // 60
@@ -113,8 +129,12 @@ args = parser.parse_args()
 hyper = {
     "timesteps" : 10000,
     "frame_stacks" : 4,
-    "learn_rate" : 1e-6,
-    "n_steps" : 512
+    "adaptive_alpha": False,
+    "learn_rate" : 1e-4,
+    "n_steps" : 512,
+    "gamma" : 0.95,
+    "ent_coef": 0.01,
+    "clip_range": 0.02
 }
 
 # Preprocessing steps to use when training the model
@@ -129,6 +149,10 @@ preprocessing = {
 # Set specified number of timesteps based on args
 if args.steps:
     hyper['timesteps'] = args.steps
+
+# Set adaptive learning rate...
+if hyper['adaptive_alpha']:
+    hyper['learn_rate'] = linear_schedule(hyper['learn_rate'])
 
 # Folder saving
 LOG_DIR = './logs/' # Where to save the logs that will be used by tensorboard
@@ -188,7 +212,10 @@ else:
     # Instantiate model that uses PPO
     policy_kwargs = dict(share_features_extractor=False)
     # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/{model_name}", learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'], device="cuda")
+    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/{model_name}", 
+                learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'],
+                device="cuda", gamma=hyper['gamma'], ent_coef=hyper['ent_coef'], clip_range=hyper['clip_range'],
+                policy_kwargs=policy_kwargs)
 
     print("Training with {} timesteps...".format(hyper['timesteps']))
 
