@@ -30,7 +30,12 @@ def save_model(model, path, name, hyper=None, time_elapsed=None, preprocessing=N
     # Read in scenario.json to obtain reward function parameters
     with open('./custom_integrations/DonkeyKongCountrySNES/scenario.json', 'r') as f:
         reward_params = json.load(f)
-
+    
+    # Convert callable adaptive learning function to regular number
+    if hyper and hyper["adaptive_alpha"]:
+        hyper["learn_rate"] = hyper["init_learn_rate"]
+        del hyper["init_learn_rate"]
+    
     # Save all relevant info relating to training run
     config = {
         "training_time" : time_elapsed,

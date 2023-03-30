@@ -145,7 +145,7 @@ hyper = {
 # Preprocessing steps to use when training the model
 preprocessing = {
     "discretize_actions" : True,
-    "reward_scale": False,
+    "reward_scale": True,
     "colour_modifier" : True,
     "grayscale" : True,
     "vectorize" : True,
@@ -158,6 +158,7 @@ if args.steps:
 
 # Set adaptive learning rate...
 if hyper['adaptive_alpha']:
+    hyper["init_learn_rate"] = hyper['learn_rate']
     hyper['learn_rate'] = linear_schedule(hyper['learn_rate'])
 
 # Folder saving
