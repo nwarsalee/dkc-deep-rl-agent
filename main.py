@@ -158,6 +158,7 @@ if args.steps:
 
 # Set adaptive learning rate...
 if hyper['adaptive_alpha']:
+    hyper["init_learn_rate"] = hyper['learn_rate']
     hyper['learn_rate'] = linear_schedule(hyper['learn_rate'])
 
 # Folder saving
