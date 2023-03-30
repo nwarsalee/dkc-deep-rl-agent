@@ -145,7 +145,7 @@ hyper = {
 # Preprocessing steps to use when training the model
 preprocessing = {
     "discretize_actions" : True,
-    "reward_scale": True,
+    "reward_scale": False,
     "colour_modifier" : True,
     "grayscale" : True,
     "vectorize" : True,
