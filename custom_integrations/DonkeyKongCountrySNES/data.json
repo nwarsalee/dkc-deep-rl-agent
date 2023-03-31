@@ -41,8 +41,8 @@
       "type": "|u2"
     },
     "mounted_animal": {
-      "address": 8258835,
-      "type": ">d4"
+      "address": 8258838,
+      "type": "|u1"
     },
     "velocity" : {
       "address": 8263964,
