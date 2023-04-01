@@ -13,13 +13,39 @@ def clear_past_train_progress(save_dir):
     for f in files:
         os.remove(f)
 
-def save_model(model, path, name, hyper=None, time_elapsed=None, preprocessing=None):
+def get_config_info(file_path):
+    """
+    Function gets the config info file of a model to a variable
+    Returns an empty array if config file wasn't found or retrivable
+    """
+    if not os.path.exists(file_path):
+        return []
+    
+    config = []
+    
+    try:
+        with open(file_path) as fin:
+            old_config = json.load(fin)
+            if isinstance(old_config, list):
+                config = old_config
+            elif isinstance(old_config, dict):
+                 # support for older versions of config file
+                config = [old_config]
+    except Exception as e:
+        print(f"get_config_info() failed with error {e}")
+    finally:
+        return config
+
+def save_model(model, base_model_path, name, hyper=None, time_elapsed=None, preprocessing=None, overwrite_model=False):
     """
     Function to save model and save its parameters used for training
     """
+    path = base_model_path
     # Create directories to save model in
     if not os.path.exists(path):
         os.makedirs(path)
+    elif overwrite_model:
+        print(f"Overwritting model {name}")
     else:
         print("WARNING - Path {} already exists, saving model in current directory...".format(path))
         path = '.'
@@ -37,11 +63,13 @@ def save_model(model, path, name, hyper=None, time_elapsed=None, preprocessing=N
         del hyper["init_learn_rate"]
     
     # Save all relevant info relating to training run
-    config = {
+    config = get_config_info(f"{base_model_path}/config.json")
+    config.append({
         "training_time" : time_elapsed,
         "hyper_params" : hyper,
         "reward_params" : reward_params,
         "preprocessing" : preprocessing
-    }
+    })
+    
     with open(f"{path}/config.json", "w") as outfile:
         json.dump(config, outfile, indent=4)

@@ -121,7 +121,15 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-r", "--record", action="store_false", help="Whether to record the experiment to a .bk2 file"
+        "-r", "--record", action="store_true", help="Whether to record the experiment to a .bk2 file."
+    )
+    
+    parser.add_argument(
+        "-c", "--continuetrain", action="store_true", help="To continue training a prexisting model using the hyperparameters/preprocessing/rewards specified in this program."
+    )
+    
+    parser.add_argument(
+        "-o", "--overwrite", action="store_true", help="In continuing training, force the save to perform in the same directory."
     )
 
     return parser
@@ -171,14 +179,20 @@ RECORDING_DIR = "./recordings/" # Where to save the recordings
 model_name = args.name
 # Path to save/load model in
 model_path = f"{MODEL_DIR}/{model_name}"
+# Direct path to the zip of the model if it exists
+model_file = f"{model_path}/{model_name}.zip"
 
 # Flag for whether to train or test
 test = args.test
 experiment = args.experiment
+continue_training = args.continuetrain
 
 # Flag for whether to record the training
 record = args.record
 record_path = f"{RECORDING_DIR}/{model_name}"
+
+# Other flags
+overwrite_model = args.overwrite
 
 # Create new env with gym retro
 env = create_gym_environment(record=record, record_path=record_path)
@@ -200,8 +214,6 @@ if test:
     # Preprocess environment
     env = preprocess_env(env, hyper, preprocessing)
 
-    model_file = f"{model_path}/{model_name}.zip"
-
     print("Testing model named '{}'".format(model_name))
 
     test_model(env, model_file)
@@ -218,11 +230,16 @@ else:
 
     # Instantiate model that uses PPO
     policy_kwargs = dict(share_features_extractor=False)
-    # TODO: Use custom cnn
-    model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/{model_name}", 
-                learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'],
-                device="cuda", gamma=hyper['gamma'], ent_coef=hyper['ent_coef'], clip_range=hyper['clip_range'],
-                policy_kwargs=policy_kwargs)
+    
+    if continue_training:
+        print("Continuing training from previously learned model...")
+        model = PPO.load(model_file, tensorboard_log=f"{LOG_DIR}/{model_name}")
+        model.set_env(env)
+    else:
+        model = PPO('CnnPolicy', env, verbose=0, tensorboard_log=f"{LOG_DIR}/{model_name}", 
+                    learning_rate=hyper["learn_rate"], n_steps=hyper['n_steps'],
+                    device="cuda", gamma=hyper['gamma'], ent_coef=hyper['ent_coef'], clip_range=hyper['clip_range'],
+                    policy_kwargs=policy_kwargs)
 
     print("Training with {} timesteps...".format(hyper['timesteps']))
 
@@ -239,4 +256,4 @@ else:
     print("Training time - {}".format(total_time))
 
     # Save model after completing training
-    save_model(model, model_path, model_name, hyper, total_time, preprocessing)
+    save_model(model, model_path, model_name, hyper, total_time, preprocessing, overwrite_model)
