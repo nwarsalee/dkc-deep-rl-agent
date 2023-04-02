@@ -8,7 +8,10 @@ def showimg(state):
 
 def show_framestack(state):
     plt.figure(figsize=(10,8))
-    for i in range(state.shape[3]):
-        plt.subplot(1,4, i+1)
+    print(state.shape)
+    count = 1
+    for i in range(0, state.shape[3], 2):
+        plt.subplot(1,4, count)
+        count +=1
         plt.imshow(state[0][:,:,i], cmap='gray')
     plt.show()

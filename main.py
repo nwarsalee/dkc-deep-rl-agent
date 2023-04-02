@@ -143,11 +143,11 @@ hyper = {
     "timesteps" : 10000,
     "frame_stacks" : 4,
     "adaptive_alpha": False,
-    "learn_rate" : 1e-4,
+    "learn_rate" : 3e-4,
     "n_steps" : 512,
     "gamma" : 0.95,
     "ent_coef": 0.01,
-    "clip_range": 0.02
+    "clip_range": 0.0075
 }
 
 # Preprocessing steps to use when training the model
@@ -200,10 +200,10 @@ env = create_gym_environment(record=record, record_path=record_path)
 if experiment:
     # Place for experimenting
 
-    test_wrappers(env)
-    # env = preprocess_env(env, hyper, preprocessing)
+    # test_wrappers(env)
+    env = preprocess_env(env, hyper, preprocessing)
     # env = DkcDiscretizer(env)
-    # test_gymretro(env)
+    test_gymretro(env, showplot=True)
     
     # Exit out
     exit(0)
@@ -229,7 +229,7 @@ else:
     training_callback = TrainingCallback(frequency=hyper['timesteps']/4, dir_path=SAVE_DIR)
 
     # Instantiate model that uses PPO
-    policy_kwargs = dict(share_features_extractor=False)
+    policy_kwargs = dict(share_features_extractor=True)
     
     if continue_training:
         print("Continuing training from previously learned model...")

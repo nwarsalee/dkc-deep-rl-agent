@@ -10,7 +10,7 @@
   "reward": {
     "variables": {
       "x": {
-        "reward": 0.05
+        "reward": 0.1
       },
       "score": {
         "reward": 0.0

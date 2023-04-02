@@ -1,6 +1,6 @@
 # File to house all testing related functions
 
-from output_frame import showimg
+from output_frame import showimg, show_framestack
 from gym.wrappers import GrayScaleObservation
 from dkc_discretizer import DkcDiscretizer
 from colour_modifier_observation import ColourModifierObservation
@@ -44,21 +44,19 @@ def test_gymretro(env, showplot=False):
             # Spam right and jump alternating
             if counter % 5 == 0:
                 # HIGH JUMP
-                # action = [3,3,3,3]
-                action = 3
+                action = [3,3,3,3]
+                # action = 3
             else:
                 # RIGHT
-                action = 1
-
-                # JUMP
-                # action = [1,1,1,1]
+                # action = 1
+                action = [1,1,1,1]
 
             # Turn image to grayscale
             # state = cv2.resize(state, (pos[0], pos[1]))
             # state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
             # state = np.reshape(state, (pos[0], pos[1]))
 
-            imgArray = state.flatten()
+            # imgArray = state.flatten()
 
             # Update next frame with current actions
             state, reward, done, info = env.step(action)
@@ -78,7 +76,8 @@ def test_gymretro(env, showplot=False):
 
             # Print img of current frame
             if showplot and counter % 450 == 0:
-                showimg(state)
+                # showimg(state)
+                show_framestack(state)
 
             # Update score
             score += reward
@@ -128,9 +127,9 @@ def test_wrappers(env):
     # Apply discretizer wrapper
     env = DkcDiscretizer(env)
     # Apply colour modifier on env
-    env = ColourModifierObservation(env)
+    # env = ColourModifierObservation(env)
     # Apply grayscale
-    env = GrayScaleObservation(env)
+    # env = GrayScaleObservation(env)
 
     # Reset and step env to view new observation after wrapping
     # env.reset()
