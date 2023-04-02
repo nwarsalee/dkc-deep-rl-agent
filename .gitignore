@@ -5,3 +5,4 @@ logs/
 train_progress/
 models/
 recordings/
+*.png
