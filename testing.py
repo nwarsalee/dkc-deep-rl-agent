@@ -5,6 +5,8 @@ from gym.wrappers import GrayScaleObservation
 from dkc_discretizer import DkcDiscretizer
 from colour_modifier_observation import ColourModifierObservation
 
+import time
+
 # Stable baselines imports
 from stable_baselines3 import PPO
 
@@ -31,32 +33,34 @@ def test_gymretro(env, showplot=False):
 
         counter = 0
 
+        # Start timer
+        start = time.time()
+
         # Game Render loop
         while not done:
             # Display what is happening
             env.render()
             
-            # Specify action/buttons randomly
-            # action = env.action_space.sample()
+            random_agent = False
+            greedy_agent = True
+
+            if random_agent:
+                # Specify action/buttons randomly
+                print("RANDOM AGENT")
+                action = env.action_space.sample()
 
             # print(action)
-
-            # Spam right and jump alternating
-            if counter % 5 == 0:
-                # HIGH JUMP
-                action = [3,3,3,3]
-                # action = 3
-            else:
-                # RIGHT
-                # action = 1
-                action = [1,1,1,1]
-
-            # Turn image to grayscale
-            # state = cv2.resize(state, (pos[0], pos[1]))
-            # state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
-            # state = np.reshape(state, (pos[0], pos[1]))
-
-            # imgArray = state.flatten()
+            if greedy_agent:
+                print("GREEDY AGENT")
+                # Spam right and jump alternating
+                if counter % 5 == 0:
+                    # HIGH JUMP
+                    # action = [3,3,3,3]
+                    action = 3
+                else:
+                    # RIGHT
+                    action = 1
+                    # action = [1,1,1,1]
 
             # Update next frame with current actions
             state, reward, done, info = env.step(action)
@@ -64,9 +68,9 @@ def test_gymretro(env, showplot=False):
             # print("info:", info)
             
             # update max x
-            # xpos = info['x']
-            # if xpos > xpos_max:
-            #     xpos_max = xpos
+            xpos = info['x']
+            if xpos > xpos_max:
+                xpos_max = xpos
 
             # # update max y
             # ypos = info['y']
@@ -80,12 +84,20 @@ def test_gymretro(env, showplot=False):
                 show_framestack(state)
 
             # Update score
-            score += reward
+            # score += reward
+            end = time.time()
+            elapsed = end - start
+
+            # If 60 seconds have passed, exit out
+            if elapsed == 60:
+                break
 
             # print("Ep#", i, " Action:", action, " | Reward:", reward)
+            counter += 1
 
-            imgArray = []
-            counter +=1
+    print("score:", info['score'])
+    print("max xpos:", xpos_max)
+    print("time:", elapsed)
 
     env.close()
 
