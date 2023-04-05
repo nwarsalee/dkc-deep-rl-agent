@@ -47,8 +47,16 @@ def save_model(model, base_model_path, name, hyper=None, time_elapsed=None, prep
     elif overwrite_model:
         print(f"Overwritting model {name}")
     else:
-        print("WARNING - Path {} already exists, saving model in current directory...".format(path))
-        path = '.'
+        print("WARNING - Path {} already exists...".format(path))
+        new_name = input("Enter new name to save model under: ")
+
+        if len(new_name) == 0:
+            print("No name entered, saving in main directory...")
+            path = '.'
+        else:
+            path = './models/{}'.format(new_name)
+            name = new_name
+            os.makedirs(path)
 
     # Save model to load it in later for testing
     model.save(f"{path}/{name}.zip")

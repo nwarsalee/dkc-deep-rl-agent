@@ -132,6 +132,10 @@ def init_argparse() -> argparse.ArgumentParser:
         "-o", "--overwrite", action="store_true", help="In continuing training, force the save to perform in the same directory."
     )
 
+    parser.add_argument(
+        "-l", "--level", type=str, help="Name of level/state to load into the environment for training or testing."
+    )
+
     return parser
 
 # Parse incoming arguments
@@ -195,15 +199,19 @@ record_path = f"{RECORDING_DIR}/{model_name}"
 overwrite_model = args.overwrite
 
 # Create new env with gym retro
-env = create_gym_environment(record=record, record_path=record_path)
+
+# If specified, change the state/level to train under
+if args.level:
+    level = args.level
+else:
+    level = '1Player.CongoJungle.JungleHijinks.Level1'
+
+env = create_gym_environment(record=record, record_path=record_path, state=level)
 
 if experiment:
     # Place for experimenting
-
-    # test_wrappers(env)
-    env = preprocess_env(env, hyper, preprocessing)
-    # env = DkcDiscretizer(env)
-    test_gymretro(env, showplot=True)
+    env = DkcDiscretizer(env)
+    test_gymretro(env, showplot=False)
     
     # Exit out
     exit(0)
