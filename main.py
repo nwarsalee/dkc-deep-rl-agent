@@ -146,12 +146,12 @@ args = parser.parse_args()
 hyper = {
     "timesteps" : 10000,
     "frame_stacks" : 4,
-    "adaptive_alpha": False,
+    "adaptive_alpha": True,
     "learn_rate" : 3e-4,
     "n_steps" : 512,
-    "gamma" : 0.95,
+    "gamma" : 0.935,
     "ent_coef": 0.01,
-    "clip_range": 0.0075
+    "clip_range": 0.01
 }
 
 # Preprocessing steps to use when training the model
@@ -224,7 +224,7 @@ if test:
 
     print("Testing model named '{}'".format(model_name))
 
-    test_model(env, model_file)
+    test_model(env, model_file, 1)
 
 else:
     # Remove any previous training progress files before new training run
