@@ -10,7 +10,7 @@ from colour_modifier_observation import ColourModifierObservation
 from train_progress import TrainingCallback
 from reward_scale import RewardScaler
 from file_operations import clear_past_train_progress, save_model
-from testing import test_gymretro, test_model, test_wrappers
+from testing import test_gymretro, test_model, test_wrappers, play_model
 
 import retro
 from gym.wrappers import GrayScaleObservation
@@ -121,6 +121,10 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "-p", "--play", type=str, metavar="recording_file", help="Play a recording of a model playing the game, based on provided action list file"
+    )
+
+    parser.add_argument(
         "-r", "--record", action="store_true", help="Whether to record the experiment to a .bk2 file."
     )
     
@@ -133,7 +137,7 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-l", "--level", type=str, help="Name of level/state to load into the environment for training or testing."
+        "-l", "--level", type=str, help="Name of level/state to load into the environment for training or testing. Defaults to start of 1st level."
     )
 
     return parser
@@ -189,6 +193,7 @@ model_file = f"{model_path}/{model_name}.zip"
 # Flag for whether to train or test
 test = args.test
 experiment = args.experiment
+play = args.play
 continue_training = args.continuetrain
 
 # Flag for whether to record the training
@@ -216,6 +221,14 @@ if experiment:
     # Exit out
     exit(0)
 
+if play:
+    # Place for experimenting
+    env = DkcDiscretizer(env)
+
+    play_model(env, play)
+    
+    # Exit out
+    exit(0)
 
 # TEST MODEL
 if test:

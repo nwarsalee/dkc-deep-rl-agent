@@ -195,3 +195,26 @@ def test_wrappers(env):
     # showimg(state)
 
     test_gymretro(env, True)
+
+# Function to play a pre-recorded set of moves from a model
+def play_model(env, play):
+    # Load in array from play file
+    with open(play, 'rb') as f:
+        actions_list = np.load(f).tolist()
+
+    # Run the model on the environment visually
+    done = False
+    env.reset()
+
+    while not done or len(actions_list) > 0:
+        # Have model predict action and update state with that given action
+        action = actions_list.pop()
+        state, reward, done, info = env.step(action)
+
+        # Sleep for 1/60th of a second to get 60 frames per second
+        time.sleep(1/60)
+
+        # Render environment
+        env.render()
+
+    print("Finished replaying recording...")
