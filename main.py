@@ -237,7 +237,7 @@ if test:
 
     print("Testing model named '{}'".format(model_name))
 
-    test_model(env, model_file, 1)
+    test_model(env, model_file, 200)
 
 else:
     # Remove any previous training progress files before new training run

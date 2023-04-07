@@ -114,8 +114,6 @@ def test_model(env, model_file_path, tries=10):
             action, _ = model.predict(state)
             state, reward, done, info = env.step(action)
 
-            # print(action)
-
             # Add action to record list
             action_records.extend(action)
 
@@ -187,9 +185,7 @@ def play_model(env, play):
         actions_list = np.load(f).tolist()
 
     # Run the model on the environment visually
-    done = False
     env.reset()
-
     for action in actions_list:
         # Have model predict action and update state with that given action
         state, reward, done, info = env.step(action)
