@@ -6,6 +6,7 @@ from dkc_discretizer import DkcDiscretizer
 from colour_modifier_observation import ColourModifierObservation
 
 import time
+import numpy as np
 
 # Stable baselines imports
 from stable_baselines3 import PPO
@@ -102,37 +103,78 @@ def test_gymretro(env, showplot=False):
     env.close()
 
 # Function runs the model given an environment and path to the PPO model
-def test_model(env, model_file_path):
+def test_model(env, model_file_path, tries=10):
     # Load weights and environment
     model = PPO.load(model_file_path)
-    state = env.reset()
-    
-    counter = 0
 
-    action_counter = 7*[0]
+    # X max
+    global_x_max = 0
+    final_action_record = None
 
-    # Run the model on the environment visually
-    while True:
-        action, _ = model.predict(state)
-        state, reward, done, info = env.step(action)
+    # End of level conditions
+    end_point = 5120
+    finished = False
 
-        print(action)
+    for i in range(tries):
+        print(f"Run #{i+1}")
+        state = env.reset()
+        done = False
+        # Vars for keeping track of max x
+        xpos = 0
+        xpos_max = 0
 
-        # Save what action was done
-        # print_heatmap = True
-        # action_counter[action[0]] += 1
+        # List for storing actions of current run
+        action_records = []
 
-        # if reward[0] > 0:
-        #     print("x: {}, y:{}".format(info[0]['x'], info[0]['y']))
-        #     print("reward: {}".format(reward[0]))
-        #     print("action:", action)
+        # Run the model on the environment visually
+        while not done:
+            # Have model predict action and update state with that given action
+            action, _ = model.predict(state)
+            state, reward, done, info = env.step(action)
+
+            # print(action)
+
+            # Add action to record list
+            action_records.extend(action)
+
+            # update max x
+            xpos = info[0]['x']
+            if xpos > xpos_max:
+                xpos_max = xpos
+
+            # Condition for if agent made it to the end
+            if xpos >= end_point:
+                print("!!!! MODEL REACHED THE END !!!!")
+                finished = True
+                break
+
+            # Render environment
+            env.render()
         
-        # if print_heatmap:
-            # for i, map in enumerate(action_map):
-                # print("{} - {} presses".format(map, action_counter[i]))
+        # Print run summary
+        print("> Furthest distance:", xpos_max)
+        print("> Final score:", info[0]['score'])
 
-        env.render()
-        counter += 1
+        # Check if last run was the best, if so set the global x max and actions record
+        if xpos_max > global_x_max:
+            global_x_max = xpos_max
+            final_action_record = action_records
+        
+        # Skip any subsequent runs if model made it to the end
+        if finished:
+            break
+
+    print("Final actions:", final_action_record)
+    print("Furthest distance:", global_x_max)
+
+    # Save final action record to file
+    model_name = model_file_path.split('/')[-1].rstrip('.zip')
+    save_file = f'{model_name}_recorded.npy'
+    with open(save_file, 'wb') as f:
+        np.save(f, final_action_record)
+    
+    print(f"Saved best run in '{save_file}'...")
+
 
 # Function for testing wrappers on Gym environments
 def test_wrappers(env):
@@ -155,3 +197,26 @@ def test_wrappers(env):
     # showimg(state)
 
     test_gymretro(env, True)
+
+# Function to play a pre-recorded set of moves from a model
+def play_model(env, play):
+    # Load in array from play file
+    with open(play, 'rb') as f:
+        actions_list = np.load(f).tolist()
+
+    # Run the model on the environment visually
+    done = False
+    env.reset()
+
+    while not done or len(actions_list) > 0:
+        # Have model predict action and update state with that given action
+        action = actions_list.pop()
+        state, reward, done, info = env.step(action)
+
+        # Sleep for 1/60th of a second to get 60 frames per second
+        time.sleep(1/60)
+
+        # Render environment
+        env.render()
+
+    print("Finished replaying recording...")

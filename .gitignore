@@ -6,3 +6,4 @@ train_progress/
 models/
 recordings/
 *.png
+*.npy
