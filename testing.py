@@ -208,13 +208,15 @@ def play_model(env, play):
     done = False
     env.reset()
 
-    while not done or len(actions_list) > 0:
+    for i, action in enumerate(actions_list):
         # Have model predict action and update state with that given action
-        action = actions_list.pop()
         state, reward, done, info = env.step(action)
 
         # Sleep for 1/60th of a second to get 60 frames per second
-        time.sleep(1/60)
+        time.sleep(1/1000)
+
+        if done:
+            print("Scenario over...")
 
         # Render environment
         env.render()
