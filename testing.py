@@ -168,10 +168,12 @@ def test_model(env, model_file_path, tries=10):
     print("Furthest distance:", global_x_max)
 
     # Save final action record to file
-    with open('saved_actions.npy', 'wb') as f:
+    model_name = model_file_path.split('/')[-1].rstrip('.zip')
+    save_file = f'{model_name}_recorded.npy'
+    with open(save_file, 'wb') as f:
         np.save(f, final_action_record)
     
-    print("Saved best run in 'saved_actions.npy'...")
+    print(f"Saved best run in '{save_file}'...")
 
 
 # Function for testing wrappers on Gym environments
