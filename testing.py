@@ -14,23 +14,14 @@ from stable_baselines3 import PPO
 # Function to test the SNES gym-retro environment
 def test_gymretro(env, showplot=False):
     # Iterate over 5 episodes
-    for i in range(1):
+    for i in range(5):
         state = env.reset()
-        score = 0
-        done = False
-
-        # Grab resolution of game image
-        # inx, iny, inc = env.observation_space.shape
-        # pos = np.array([int(inx/8), int(iny/8)])
 
         # print(pos)
 
         # Declare vars for x coord
         xpos = 0
         xpos_max = 0
-        # Declare vars for y coord
-        ypos = 0
-        ypos_max = 0
 
         counter = 0
 
@@ -38,6 +29,7 @@ def test_gymretro(env, showplot=False):
         start = time.time()
 
         # Game Render loop
+        done = False
         while not done:
             # Display what is happening
             env.render()
@@ -66,26 +58,17 @@ def test_gymretro(env, showplot=False):
             # Update next frame with current actions
             state, reward, done, info = env.step(action)
 
-            # print("info:", info)
-            
             # update max x
             xpos = info['x']
             if xpos > xpos_max:
                 xpos_max = xpos
 
-            # # update max y
-            # ypos = info['y']
-            # if ypos > ypos_max:
-            #     ypos_max = ypos
-            #     # print("y:", ypos)
-
             # Print img of current frame
             if showplot and counter % 450 == 0:
-                # showimg(state)
-                show_framestack(state)
+                showimg(state)
+                # show_framestack(state)
 
             # Update score
-            # score += reward
             end = time.time()
             elapsed = end - start
 
@@ -93,7 +76,6 @@ def test_gymretro(env, showplot=False):
             if elapsed == 60:
                 break
 
-            # print("Ep#", i, " Action:", action, " | Reward:", reward)
             counter += 1
 
     print("score:", info['score'])
@@ -201,18 +183,18 @@ def test_wrappers(env):
 # Function to play a pre-recorded set of moves from a model
 def play_model(env, play):
     # Load in array from play file
-    with open(play, 'rb') as f:
+    with open(f"{play}.npy", 'rb') as f:
         actions_list = np.load(f).tolist()
 
     # Run the model on the environment visually
     done = False
     env.reset()
 
-    for i, action in enumerate(actions_list):
+    for action in actions_list:
         # Have model predict action and update state with that given action
         state, reward, done, info = env.step(action)
 
-        # Sleep for 1/60th of a second to get 60 frames per second
+        # Sleep for 1ms to slow down replay
         time.sleep(1/1000)
 
         if done:
