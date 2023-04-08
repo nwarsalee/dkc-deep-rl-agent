@@ -11,6 +11,9 @@ import numpy as np
 # Stable baselines imports
 from stable_baselines3 import PPO
 
+# Where to save the recordings
+RECORDING_DIR = "./recordings/"
+
 # Function to test the SNES gym-retro environment
 def test_gymretro(env, showplot=False):
     # Iterate over 5 episodes
@@ -92,6 +95,7 @@ def test_model(env, model_file_path, tries=10):
     # X max
     global_x_max = 0
     final_action_record = None
+    x_max_score = 0
 
     # End of level conditions
     end_point = 5120
@@ -135,22 +139,24 @@ def test_model(env, model_file_path, tries=10):
         print("> Furthest distance:", xpos_max)
         print("> Final score:", info[0]['score'])
 
-        # Check if last run was the best, if so set the global x max and actions record
+        # Check if last run was the best, if so set the global x max, score assoc. and actions record
         if xpos_max > global_x_max:
             global_x_max = xpos_max
             final_action_record = action_records
+            x_max_score = info[0]['score']
         
         # Skip any subsequent runs if model made it to the end
         if finished:
             break
 
-    print("Final actions:", final_action_record)
-    print("Furthest distance:", global_x_max)
+    print("\nFurthest distance:", global_x_max)
+    print("Assoc. score:", x_max_score)
 
     # Save final action record to file
     model_name = model_file_path.split('/')[-1].rstrip('.zip')
-    save_file = f'{model_name}_recorded.npy'
-    with open(save_file, 'wb') as f:
+    save_file = f'{model_name}.npy'
+    save_path = f'{RECORDING_DIR}/{save_file}'
+    with open(save_path, 'wb') as f:
         np.save(f, final_action_record)
     
     print(f"Saved best run in '{save_file}'...")
@@ -181,7 +187,7 @@ def test_wrappers(env):
 # Function to play a pre-recorded set of moves from a model
 def play_model(env, play):
     # Load in array from play file
-    with open(f"{play}.npy", 'rb') as f:
+    with open(f"{RECORDING_DIR}/{play}.npy", 'rb') as f:
         actions_list = np.load(f).tolist()
 
     # Run the model on the environment visually

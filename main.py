@@ -26,18 +26,16 @@ from stable_baselines3 import PPO
 print("Finished loading in packages...")
 
 # Function creates a gym environment using the integration located in
-def create_gym_environment(state='1Player.CongoJungle.JungleHijinks.Level1', record=False, record_path=""):
+def create_gym_environment(state='1Player.CongoJungle.JungleHijinks.Level1'):
     # Add the game to the retro data
     game_name = "DonkeyKongCountrySNES"
     script_dir = os.path.dirname(os.path.abspath(__file__))
     retro.data.Integrations.add_custom_path(os.path.join(script_dir, "custom_integrations"))
+
     assert(game_name in retro.data.list_games(inttype=retro.data.Integrations.ALL))
+
     # Create the gym environment from the custom integration
-    if record:
-        os.makedirs(record_path, exist_ok=True)
-        return retro.make(game_name, state=state, inttype=retro.data.Integrations.ALL, record=record_path)
-    else:
-        return retro.make(game_name, state=state, inttype=retro.data.Integrations.ALL)
+    return retro.make(game_name, state=state, inttype=retro.data.Integrations.ALL)
 
 def preprocess_env(env, hyper, preprocessing):
     """
@@ -121,11 +119,7 @@ def init_argparse() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-p", "--play", type=str, metavar="recording_file", help="Play a recording of a model playing the game, based on provided action list file"
-    )
-
-    parser.add_argument(
-        "-r", "--record", action="store_true", help="Whether to record the experiment to a .bk2 file."
+        "-p", "--play", action="store_true", help="Play a recording of a model playing the game, based on model name"
     )
     
     parser.add_argument(
@@ -181,7 +175,6 @@ if hyper['adaptive_alpha']:
 LOG_DIR = './logs/' # Where to save the logs that will be used by tensorboard
 SAVE_DIR = './train_progress/' # Where to save model progress during training (deletes after every new run)
 MODEL_DIR = './models/' # Where to save final models after training
-RECORDING_DIR = "./recordings/" # Where to save the recordings 
 
 # Model name to test/train via args
 model_name = args.name
@@ -196,10 +189,6 @@ experiment = args.experiment
 play = args.play
 continue_training = args.continuetrain
 
-# Flag for whether to record the training
-record = args.record
-record_path = f"{RECORDING_DIR}/{model_name}"
-
 # Other flags
 overwrite_model = args.overwrite
 
@@ -211,10 +200,12 @@ if args.level:
 else:
     level = '1Player.CongoJungle.JungleHijinks.Level1'
 
-env = create_gym_environment(record=record, record_path=record_path, state=level)
+env = create_gym_environment(state=level)
 
 if experiment:
     # Place for experimenting
+    print("--- RUNNING EXPERIMENTATION MODE ---")
+
     env = DkcDiscretizer(env)
     test_gymretro(env, showplot=False)
     
@@ -222,24 +213,32 @@ if experiment:
     exit(0)
 
 if play:
-    # Place for experimenting
+    # Replay saved model run
+    print("--- RUNNING REPLAY MODE ---")
+
+    # Reduce action space
     env = DkcDiscretizer(env)
 
-    play_model(env, play)
+    # Play model replay
+    play_model(env, model_name)
     
     # Exit out
     exit(0)
 
 # TEST MODEL
 if test:
+    print("--- RUNNING TESTING MODE ---")
+
     # Preprocess environment
     env = preprocess_env(env, hyper, preprocessing)
 
     print("Testing model named '{}'".format(model_name))
 
-    test_model(env, model_file, 200)
+    test_model(env, model_file, 10)
 
 else:
+    print("--- RUNNING TRAINING MODE ---")
+
     # Remove any previous training progress files before new training run
     clear_past_train_progress(SAVE_DIR)
 
