@@ -4,7 +4,6 @@ from gym import ObservationWrapper
 from gym.spaces import Box
 import numpy as np
 import cv2
-from sklearn.cluster import MiniBatchKMeans
 
 class ColourModifierObservation(ObservationWrapper):
     def __init__(self, env):
